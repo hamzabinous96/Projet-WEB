@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Backoffice - Gestion des Projets</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container header-inner">
+      <h1 class="title">Backoffice - Gestion des Projets</h1>
+      <button class="btn add-btn">+ Ajouter un projet</button>
+    </div>
+  </header>
+
+  <section class="stats container">
+    <div class="stat-card">
+      <h4>Projets créés</h4>
+      <p class="stat-number">8</p>
+    </div>
+    <div class="stat-card">
+      <h4>Projets supprimés</h4>
+      <p class="stat-number">2</p>
+    </div>
+    <div class="stat-card">
+      <h4>Projets publiés</h4>
+      <p class="stat-number">4</p>
+    </div>
+    <div class="stat-card">
+      <h4>Participation totale</h4>
+      <p class="stat-number">57</p>
+    </div>
+  </section>
+
+  <main class="container">
+    <div class="table-wrap">
+      <table class="projects-table" role="table" aria-label="Liste des projets">
+        <tr class="table-header">
+          <th>ID</th>
+          <th>Nom du projet</th>
+          <th>Description</th>
+          <th>Publié</th>
+          <th>Participants</th>
+          <th>Actions</th>
+        </tr>
+
+        <tr>
+          <td>1</td>
+          <td>ÉcoQuartier</td>
+          <td>Améliorer la qualité de vie locale</td>
+          <td class="center-col"><span class="badge yes">✔</span></td>
+          <td class="center-col">12</td>
+          <td class="center-col">
+            <button class="btn primary">Modifier</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td>2</td>
+          <td>Smart City</td>
+          <td>Projet citoyen pour la durabilité</td>
+          <td class="center-col"><span class="badge no">✖</span></td>
+          <td class="center-col">5</td>
+          <td class="center-col">
+            <button class="btn danger">Supprimer</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td>3</td>
+          <td>Jardin Public</td>
+          <td>Innovation sociale et environnementale</td>
+          <td class="center-col"><span class="badge yes">✔</span></td>
+          <td class="center-col">8</td>
+          <td class="center-col">
+            <button class="btn primary">Modifier</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td>4</td>
+          <td>Nettoyage Urbain</td>
+          <td>Renforcement de la communauté urbaine</td>
+          <td class="center-col"><span class="badge no">✖</span></td>
+          <td class="center-col">14</td>
+          <td class="center-col">
+            <button class="btn danger">Supprimer</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td>5</td>
+          <td>Énergie Verte</td>
+          <td>Développement écologique et technologique</td>
+          <td class="center-col"><span class="badge yes">✔</span></td>
+          <td class="center-col">18</td>
+          <td class="center-col">
+            <button class="btn primary">Modifier</button>
+          </td>
+        </tr>
+
+      </table>
+    </div>
+  </main>
+</body>
+</html>
