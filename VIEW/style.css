@@ -1,0 +1,151 @@
+:root{
+background: linear-gradient(135deg, #ff416c 0%, #FFFFFF 100%);  
+--card-bg :linear-gradient(135deg, #ff4b2b 0%, #ff416c 60%);  /* dark red card background */
+  --chip-bg: #3b1a1a;      /* slightly lighter red/pink for chips/buttons */
+  --muted: #f0d8d8;        /* secondary text in soft pink */
+  --text: #ffe5e5;         /* main text light pink */
+  --brand-gradient: linear-gradient(90deg, #ff416c, #ff4b2b); /* red/pink gradient accent */
+  --accent: #ff758f;       /* success feedback */
+  --danger: #ff6b6b;       /* error feedback */
+  --ring: #ff416c55;       /* focus ring */
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans";
+  background: radial-gradient(1200px 800px at 20% -20%, #ff4b2b, transparent 60%),
+              radial-gradient(900px 700px at 120% 20%, #ff416c, transparent 60%),
+              var(--bg);
+  color: var(--text);
+  line-height:1.5;
+}
+
+.container{
+  max-width:900px;
+  margin:40px auto;
+  padding:24px;
+}
+
+header{
+  display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  margin-bottom:16px;
+}
+
+.title{
+  font-size:clamp(24px,3vw,36px);
+  font-weight:800; letter-spacing:.3px;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+.card{
+  background: var(--card-bg);
+  border: 1px solid #ff4b2b;
+  border-radius:18px;
+  padding:22px;
+  box-shadow:0 10px 30px #00000022, inset 0 1px 0 #ffffff08;
+}
+
+.intro{color:var(--muted); margin:0 0 8px}
+
+.controls{
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+}
+
+.toggle{
+  display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
+  font-weight:600; color:var(--text);
+  background: var(--chip-bg);
+  border:1px solid #ff4b2b; padding:10px 14px; border-radius:999px;
+  box-shadow: inset 0 1px 0 #ffffff10;
+}
+
+.toggle input{
+  appearance:none; width:22px; height:22px; border-radius:6px;
+  border:1px solid #ff4b2b; display:grid; place-items:center; background: var(--chip-bg);
+}
+
+.toggle input::after{
+  content:""; width:14px; height:14px; border-radius:4px; transform:scale(0);
+  transition:transform .15s ease;
+  background: var(--brand-gradient);
+}
+
+.toggle input:checked::after{transform:scale(1)}
+
+form{display:grid; gap:18px; margin-top:10px}
+
+fieldset{border:none; padding:0; margin:0}
+legend{font-weight:700; margin-bottom:10px; font-size:18px}
+
+.q{
+  border:1px solid #ff4b2b;
+  background: var(--card-bg);
+  border-radius:14px;
+  padding:18px;
+  position:relative;
+}
+
+.q:focus-within{outline:2px solid var(--ring); outline-offset:2px}
+
+.options{display:grid; gap:10px}
+
+.option{position:relative}
+.option input{position:absolute; inset:0; opacity:0}
+
+.chip{
+  display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:12px; cursor:pointer;
+  border:1px solid #ff4b2b;
+  background: var(--chip-bg);
+  transition:transform .05s ease, border-color .2s ease;
+}
+
+.chip:hover{border-color:#ff416c}
+.chip:active{transform:scale(.995)}
+
+.dot{width:12px; height:12px; border-radius:50%; border:2px solid #ff416c; background:transparent}
+
+/* Show selected state */
+.option input:checked + .chip{border-color:#ff4b2b; background:#5a1010}
+
+.feedback{display:none; font-size:14px; margin-top:6px}
+
+/* Correct when selected */
+.option.correct input:checked + .chip{
+  border-color: #ff416c;
+  box-shadow: 0 0 0 1px #ff416c inset;
+}
+.option.correct input:checked + .chip .dot{
+  border-color:#ff4b2b; background:#ff4b2b;
+}
+.option.correct input:checked ~ .feedback.ok{display:block; color: var(--accent)}
+
+/* Wrong when selected */
+.option.wrong input:checked + .chip{
+  border-color: #ff4b2b;
+  box-shadow: 0 0 0 1px #ff4b2b inset;
+}
+.option.wrong input:checked + .chip .dot{
+  border-color:#ff4b2b; background:#ff4b2b;
+}
+.option.wrong input:checked ~ .feedback.ko{display:block; color: var(--danger)}
+
+/* Reveal all answers toggle */
+#reveal:checked ~ form .option.correct .chip{
+  border-color:#ff416c;
+}
+#reveal:checked ~ form .option.correct .chip .dot{
+  border-color:#ff4b2b; background:#ff4b2b;
+}
+#reveal:checked ~ form .option.correct .feedback.ok{display:block}
+
+.footnote{color:#f0d8d8; font-size:13px; margin-top:12px}
+
+/* Print friendly */
+@media print{
+  body{background:white; color:black}
+  .card{box-shadow:none; background:white; border-color:#ddd}
+  .toggle{display:none}
+}
