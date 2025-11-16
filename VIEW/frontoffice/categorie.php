@@ -1,3 +1,53 @@
+<?php
+// Inclure les fichiers nécessaires
+require_once(__DIR__ . '/../../config.php');
+require_once(__DIR__ . '/../../CONTROLLER/ProjectController.php');
+
+// Initialiser le contrôleur
+$projectController = new ProjectController();
+
+// Récupérer les statistiques par catégorie depuis la base de données
+$statsCategories = $projectController->getProjectsByCategoryStats();
+
+// Définir les catégories avec leurs icônes et descriptions
+$categories = [
+    'Solidarité' => [
+        'icon' => 'fas fa-hand-holding-heart',
+        'description' => 'Aide aux personnes défavorisées et actions sociales communautaires',
+        'url' => 'projects.php?category=Solidarité'
+    ],
+    'Environement' => [
+        'icon' => 'fas fa-leaf',
+        'description' => 'Protection de la nature et initiatives de développement durable',
+        'url' => 'projects.php?category=Environement'
+    ],
+    'Education' => [
+        'icon' => 'fas fa-graduation-cap',
+        'description' => 'Soutien scolaire et programmes éducatifs pour tous les âges',
+        'url' => 'projects.php?category=Education'
+    ],
+    'Sante' => [
+        'icon' => 'fas fa-heartbeat',
+        'description' => 'Sensibilisation et actions pour la santé physique et mentale',
+        'url' => 'projects.php?category=Sante'
+    ],
+    'Aide' => [
+        'icon' => 'fas fa-utensils',
+        'description' => 'Distribution de nourriture et lutte contre la précarité alimentaire',
+        'url' => 'projects.php?category=Aide'
+    ],
+    'Culture' => [
+        'icon' => 'fas fa-palette',
+        'description' => 'Promotion des arts et préservation du patrimoine culturel',
+        'url' => 'projects.php?category=Culture'
+    ]
+];
+
+// Calculer le total des projets
+$totalProjects = array_sum($statsCategories);
+$totalCategories = count($categories); // Maintenant on compte toutes les catégories définies
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -5,8 +55,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeConnect - Communauté Solidaire</title>
     <link rel="stylesheet" href="../style/categorie.css">
+    <link rel="stylesheet" href="../style/projects.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body onload="window.scrollTo(0,0)"> 
@@ -61,15 +112,15 @@
             </div>
             <div class="hero-stats">
                 <div class="stat">
-                    <h3>50+</h3>
+                    <h3><?php echo $totalCategories; ?>+</h3>
                     <p>Catégories</p>
                 </div>
                 <div class="stat">
-                    <h3>500+</h3>
+                    <h3><?php echo $totalProjects; ?>+</h3>
                     <p>Projets actifs</p>
                 </div>
                 <div class="stat">
-                    <h3>2K+</h3>
+                    <h3><?php echo $projectController->getTotalParticipants(); ?>+</h3>
                     <p>Volontaires</p>
                 </div>
             </div>
@@ -87,7 +138,7 @@
                     <div class="card-meta">
                         <span class="participants">
                             <i class="fas fa-users"></i>
-                            120 volontaires
+                            <?php echo $statsCategories['Solidarité'] ?? 0; ?> projets
                         </span>
                         <span class="rating">
                             <i class="fas fa-star"></i>
@@ -117,71 +168,28 @@
             <p>Choisissez votre domaine d'action préféré</p>
         </div>
         <div class="categories-grid">
-            <div class="category-card" onclick="location.href='projects.html?category=solidarite'">
-                <div class="category-icon">
-                    <i class="fas fa-hand-holding-heart"></i>
+            <?php foreach ($categories as $categoryName => $categoryData): ?>
+                <?php 
+                $projectCount = $statsCategories[$categoryName] ?? 0;
+                ?>
+                <div class="category-card" onclick="location.href='<?php echo $categoryData['url']; ?>'">
+                    <div class="category-icon">
+                        <i class="<?php echo $categoryData['icon']; ?>"></i>
+                    </div>
+                    <h3><?php echo htmlspecialchars($categoryName); ?></h3>
+                    <p><?php echo htmlspecialchars($categoryData['description']); ?></p>
+                    <span class="project-count"><?php echo $projectCount; ?> projet<?php echo $projectCount > 1 ? 's' : ''; ?></span>
                 </div>
-                <h3>Projets de Solidarité</h3>
-                <p>Aide aux personnes défavorisées et actions sociales communautaires</p>
-                <span class="project-count">45 projets</span>
-            </div>
-            <div class="category-card" onclick="location.href='projects.html?category=environnement'">
-                <div class="category-icon">
-                    <i class="fas fa-leaf"></i>
-                </div>
-                <h3>Actions Environnementales</h3>
-                <p>Protection de la nature et initiatives de développement durable</p>
-                <span class="project-count">32 projets</span>
-            </div>
-            <div class="category-card" onclick="location.href='projects.html?category=education'">
-                <div class="category-icon">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <h3>Éducation & Tutorat</h3>
-                <p>Soutien scolaire et programmes éducatifs pour tous les âges</p>
-                <span class="project-count">28 projets</span>
-            </div>
-            <div class="category-card" onclick="location.href='projects.html?category=sante'">
-                <div class="category-icon">
-                    <i class="fas fa-heartbeat"></i>
-                </div>
-                <h3>Santé & Bien-être</h3>
-                <p>Sensibilisation et actions pour la santé physique et mentale</p>
-                <span class="project-count">35 projets</span>
-            </div>
-            <div class="category-card" onclick="location.href='projects.html?category=alimentation'">
-                <div class="category-icon">
-                    <i class="fas fa-utensils"></i>
-                </div>
-                <h3>Aide Alimentaire</h3>
-                <p>Distribution de nourriture et lutte contre la précarité alimentaire</p>
-                <span class="project-count">25 projets</span>
-            </div>
-            <div class="category-card" onclick="location.href='projects.html?category=culture'">
-                <div class="category-icon">
-                    <i class="fas fa-palette"></i>
-                </div>
-                <h3>Arts & Culture</h3>
-                <p>Promotion des arts et préservation du patrimoine culturel</p>
-                <span class="project-count">18 projets</span>
-            </div>
-            <div class="category-card" onclick="location.href='projects.html?category=developpement'">
-                <div class="category-icon">
-                    <i class="fas fa-home"></i>
-                </div>
-                <h3>Développement Communautaire</h3>
-                <p>Initiatives pour renforcer les liens et infrastructures locales</p>
-                <span class="project-count">22 projets</span>
-            </div>
-            <div class="category-card" onclick="location.href='projects.html?category=discussion'">
-                <div class="category-icon">
-                    <i class="fas fa-comments"></i>
-                </div>
-                <h3>Discussion & Réseautage</h3>
-                <p>Échanges et création de réseaux entre volontaires engagés</p>
-                <span class="project-count">15 projets</span>
-            </div>
+            <?php endforeach; ?>
         </div>
+        
+        <?php if ($totalProjects === 0): ?>
+        <div class="no-projects-message">
+            <i class="fas fa-info-circle"></i>
+            <h3>Aucun projet disponible pour le moment</h3>
+            <p>Revenez bientôt pour découvrir nos nouvelles initiatives !</p>
+        </div>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -238,11 +246,9 @@
             <div class="footer-section">
                 <h4>Catégories</h4>
                 <ul>
-                    <li><a href="projects.html?category=solidarite">Solidarité</a></li>
-                    <li><a href="projects.html?category=environnement">Environnement</a></li>
-                    <li><a href="projects.html?category=education">Éducation</a></li>
-                    <li><a href="projects.html?category=sante">Santé</a></li>
-                    <li><a href="projects.html?category=culture">Culture</a></li>
+                    <?php foreach ($categories as $categoryName => $categoryData): ?>
+                        <li><a href="<?php echo $categoryData['url']; ?>"><?php echo htmlspecialchars($categoryName); ?></a></li>
+                    <?php endforeach; ?>
                 </ul>
             </div>
             <div class="footer-section">

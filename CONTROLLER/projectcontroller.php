@@ -1,7 +1,6 @@
 <?php
-// ProjectController.php
-require_once __DIR__ . '/../config.php'; // Goes up one level to config.php
-require_once __DIR__ . '/../MODEL/projectmodel.php'; // Goes up one level then to model
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../MODEL/projectmodel.php';
 
 class ProjectController {
     private $projectModel;
@@ -10,24 +9,37 @@ class ProjectController {
         $this->projectModel = new Project();
     }
     
-    // Ajouter un nouveau projet
+    public function getProjectsByCategory($categorie) {
+        if (empty($categorie)) {
+            return [];
+        }
+        return $this->projectModel->getProjectsByCategory($categorie);
+    }
+    
+    public function getAllProjects() {
+        return $this->projectModel->getAllProjects();
+    }
+    
+    public function getProjectById($id) {
+        if (empty($id)) {
+            return null;
+        }
+        return $this->projectModel->getProjectById($id);
+    }
+    
     public function addProject($titre, $association, $lieu, $date_debut, $date_fin, $disponibilite, $descriptionp, $categorie, $created_by) {
-        // Validation des données
         if (empty($titre) || empty($association) || empty($created_by)) {
             return "Erreur: Titre, association et créateur sont obligatoires";
         }
         
-        // Validation des dates
         if (!empty($date_debut) && !empty($date_fin) && $date_debut > $date_fin) {
             return "Erreur: La date de début ne peut pas être après la date de fin";
         }
         
-        // Vérifier que l'association existe dans la table utilisateurs
         if (!$this->isValidAssociation($association)) {
             return "Erreur: L'association spécifiée n'existe pas";
         }
         
-        // Vérifier que l'admin créateur existe
         if (!$this->isValidAdmin($created_by)) {
             return "Erreur: L'administrateur créateur n'existe pas";
         }
@@ -38,43 +50,24 @@ class ProjectController {
         );
     }
     
-    // Récupérer tous les projets
-    public function getAllProjects() {
-        return $this->projectModel->getAllProjects();
-    }
-    
-    // Récupérer un projet par ID
-    public function getProjectById($id) {
-        if (empty($id)) {
-            return null;
-        }
-        return $this->projectModel->getProjectById($id);
-    }
-    
-    // Mettre à jour un projet
     public function updateProject($id, $titre, $association, $lieu, $date_debut, $date_fin, $disponibilite, $descriptionp, $categorie, $created_by) {
-        // Validation des données
         if (empty($id) || empty($titre) || empty($association) || empty($created_by)) {
             return "Erreur: ID, titre, association et créateur sont obligatoires";
         }
         
-        // Vérifier que le projet existe
         $existingProject = $this->projectModel->getProjectById($id);
         if (!$existingProject) {
             return "Erreur: Le projet n'existe pas";
         }
         
-        // Validation des dates
         if (!empty($date_debut) && !empty($date_fin) && $date_debut > $date_fin) {
             return "Erreur: La date de début ne peut pas être après la date de fin";
         }
         
-        // Vérifier que l'association existe
         if (!$this->isValidAssociation($association)) {
             return "Erreur: L'association spécifiée n'existe pas";
         }
         
-        // Vérifier que l'admin créateur existe
         if (!$this->isValidAdmin($created_by)) {
             return "Erreur: L'administrateur créateur n'existe pas";
         }
@@ -85,13 +78,11 @@ class ProjectController {
         );
     }
     
-    // Supprimer un projet
     public function deleteProject($id) {
         if (empty($id)) {
             return false;
         }
         
-        // Vérifier que le projet existe
         $existingProject = $this->projectModel->getProjectById($id);
         if (!$existingProject) {
             return false;
@@ -100,20 +91,10 @@ class ProjectController {
         return $this->projectModel->deleteProject($id);
     }
     
-    // Récupérer les projets par catégorie
-    public function getProjectsByCategory($categorie) {
-        if (empty($categorie)) {
-            return [];
-        }
-        return $this->projectModel->getProjectsByCategory($categorie);
-    }
-    
-    // Récupérer les projets disponibles
     public function getAvailableProjects() {
         return $this->projectModel->getAvailableProjects();
     }
     
-    // Récupérer les projets par association
     public function getProjectsByAssociation($association_id) {
         if (empty($association_id)) {
             return [];
@@ -121,7 +102,6 @@ class ProjectController {
         return $this->projectModel->getProjectsByAssociation($association_id);
     }
     
-    // Récupérer les projets par statut de disponibilité
     public function getProjectsByStatus($status) {
         if (empty($status)) {
             return [];
@@ -129,7 +109,39 @@ class ProjectController {
         return $this->projectModel->getProjectsByStatus($status);
     }
     
-    // Statistiques
+    public function getProjectsWithFilters($filters = []) {
+        $category = $filters['category'] ?? '';
+        $status = $filters['status'] ?? '';
+        $location = $filters['location'] ?? '';
+        $search = $filters['search'] ?? '';
+        
+        $projects = [];
+        
+        if (!empty($search)) {
+            $projects = $this->searchProjects($search);
+        }
+        elseif (!empty($category)) {
+            $projects = $this->getProjectsByCategory($category);
+        }
+        else {
+            $projects = $this->getAllProjects();
+        }
+        
+        if (!empty($status) && $projects) {
+            $projects = array_filter($projects, function($project) use ($status) {
+                return $project['disponibilite'] === $status;
+            });
+        }
+        
+        if (!empty($location) && $projects) {
+            $projects = array_filter($projects, function($project) use ($location) {
+                return stripos($project['lieu'] ?? '', $location) !== false;
+            });
+        }
+        
+        return array_values($projects);
+    }
+    
     public function getProjectsCount() {
         return $this->projectModel->getProjectsCount();
     }
@@ -138,7 +150,6 @@ class ProjectController {
         return $this->projectModel->getAvailableProjectsCount();
     }
     
-    // Récupérer le nombre de participants pour un projet (depuis la table participation)
     public function getParticipantsCount($project_id) {
         if (empty($project_id)) {
             return 0;
@@ -157,7 +168,6 @@ class ProjectController {
         }
     }
     
-    // Récupérer le total des participants pour tous les projets
     public function getTotalParticipants() {
         try {
             $db = Config::getConnexion();
@@ -172,7 +182,72 @@ class ProjectController {
         }
     }
     
-    // Méthodes de validation
+    public function getProjectsByAvailability() {
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT disponibilite, COUNT(*) as count 
+                    FROM projets 
+                    WHERE disponibilite IN ('disponible', 'complet', 'termine') 
+                    GROUP BY disponibilite";
+            $stmt = $db->prepare($sql);
+            $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $stats = [];
+            foreach ($results as $row) {
+                $stats[$row['disponibilite']] = $row['count'];
+            }
+            
+            $stats['disponible'] = $stats['disponible'] ?? 0;
+            $stats['complet'] = $stats['complet'] ?? 0;
+            $stats['termine'] = $stats['termine'] ?? 0;
+            
+            return $stats;
+        } catch (PDOException $e) {
+            error_log("Error fetching projects by availability: " . $e->getMessage());
+            return [
+                'disponible' => 0,
+                'complet' => 0,
+                'termine' => 0
+            ];
+        }
+    }
+    
+    public function getProjectsByCategoryStats() {
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT categorie, COUNT(*) as count 
+                    FROM projets 
+                    WHERE categorie IS NOT NULL AND categorie != '' 
+                    GROUP BY categorie";
+            $stmt = $db->prepare($sql);
+            $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $stats = [];
+            foreach ($results as $row) {
+                $stats[$row['categorie']] = $row['count'];
+            }
+            
+            $mainCategories = ['Solidarité', 'Environement', 'Education', 'Sante', 'Aide', 'Culture'];
+            foreach ($mainCategories as $category) {
+                $stats[$category] = $stats[$category] ?? 0;
+            }
+            
+            return $stats;
+        } catch (PDOException $e) {
+            error_log("Error fetching projects by category stats: " . $e->getMessage());
+            return [
+                'Solidarité' => 0,
+                'Environement' => 0,
+                'Education' => 0,
+                'Sante' => 0,
+                'Aide' => 0,
+                'Culture' => 0
+            ];
+        }
+    }
+    
     private function isValidAssociation($association_id) {
         try {
             $db = Config::getConnexion();
@@ -199,7 +274,6 @@ class ProjectController {
         }
     }
     
-    // Récupérer les associations disponibles
     public function getAssociations() {
         try {
             $db = Config::getConnexion();
@@ -213,7 +287,6 @@ class ProjectController {
         }
     }
     
-    // Récupérer les administrateurs disponibles
     public function getAdmins() {
         try {
             $db = Config::getConnexion();
@@ -227,7 +300,6 @@ class ProjectController {
         }
     }
     
-    // Recherche de projets
     public function searchProjects($search_term) {
         if (empty($search_term)) {
             return [];
@@ -251,7 +323,6 @@ class ProjectController {
         }
     }
     
-    // Récupérer les catégories disponibles
     public function getCategories() {
         try {
             $db = Config::getConnexion();
@@ -265,7 +336,6 @@ class ProjectController {
         }
     }
     
-    // Récupérer les statuts de disponibilité disponibles
     public function getAvailabilityStatuses() {
         try {
             $db = Config::getConnexion();
@@ -279,28 +349,23 @@ class ProjectController {
         }
     }
     
-    // Gérer la participation d'un utilisateur à un projet
     public function addParticipation($user_id, $project_id, $admin_id) {
         if (empty($user_id) || empty($project_id) || empty($admin_id)) {
             return "Erreur: ID utilisateur, ID projet et ID admin sont obligatoires";
         }
         
-        // Vérifier que l'utilisateur existe
         if (!$this->isValidUser($user_id)) {
             return "Erreur: L'utilisateur spécifié n'existe pas";
         }
         
-        // Vérifier que le projet existe
         if (!$this->projectModel->getProjectById($project_id)) {
             return "Erreur: Le projet spécifié n'existe pas";
         }
         
-        // Vérifier que l'admin existe
         if (!$this->isValidAdmin($admin_id)) {
             return "Erreur: L'administrateur spécifié n'existe pas";
         }
         
-        // Vérifier si l'utilisateur participe déjà à ce projet
         if ($this->isUserParticipating($user_id, $project_id)) {
             return "Erreur: L'utilisateur participe déjà à ce projet";
         }
@@ -317,7 +382,6 @@ class ProjectController {
         }
     }
     
-    // Supprimer une participation
     public function removeParticipation($user_id, $project_id) {
         if (empty($user_id) || empty($project_id)) {
             return false;
@@ -334,7 +398,6 @@ class ProjectController {
         }
     }
     
-    // Vérifier si un utilisateur participe à un projet
     private function isUserParticipating($user_id, $project_id) {
         try {
             $db = Config::getConnexion();
@@ -348,7 +411,6 @@ class ProjectController {
         }
     }
     
-    // Vérifier si un utilisateur existe
     private function isValidUser($user_id) {
         try {
             $db = Config::getConnexion();
@@ -362,20 +424,49 @@ class ProjectController {
         }
     }
 
-    // Méthode pour récupérer les projets avec pagination
-    public function getProjectsWithPagination($page = 1, $limit = 10) {
+    public function getProjectsWithPagination($page = 1, $limit = 10, $filters = []) {
         $offset = ($page - 1) * $limit;
         
         try {
             $db = Config::getConnexion();
+            
             $sql = "SELECT p.*, u.nom as association_nom, a.nom as admin_nom 
                     FROM projets p 
                     JOIN utilisateurs u ON p.association = u.id 
                     JOIN admin a ON p.created_by = a.id 
-                    ORDER BY p.id_projet DESC 
-                    LIMIT ? OFFSET ?";
+                    WHERE 1=1";
+            
+            $params = [];
+            
+            if (!empty($filters['category'])) {
+                $sql .= " AND p.categorie = ?";
+                $params[] = $filters['category'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= " AND p.disponibilite = ?";
+                $params[] = $filters['status'];
+            }
+            
+            if (!empty($filters['location'])) {
+                $sql .= " AND p.lieu LIKE ?";
+                $params[] = "%" . $filters['location'] . "%";
+            }
+            
+            if (!empty($filters['search'])) {
+                $sql .= " AND (p.titre LIKE ? OR p.descriptionp LIKE ? OR u.nom LIKE ?)";
+                $search_pattern = "%" . $filters['search'] . "%";
+                $params[] = $search_pattern;
+                $params[] = $search_pattern;
+                $params[] = $search_pattern;
+            }
+            
+            $sql .= " ORDER BY p.id_projet DESC LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+            
             $stmt = $db->prepare($sql);
-            $stmt->execute([$limit, $offset]);
+            $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching projects with pagination: " . $e->getMessage());
@@ -383,7 +474,51 @@ class ProjectController {
         }
     }
 
-    // Méthode pour récupérer les projets expirés
+    public function countProjectsWithFilters($filters = []) {
+        try {
+            $db = Config::getConnexion();
+            
+            $sql = "SELECT COUNT(*) as total 
+                    FROM projets p 
+                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN admin a ON p.created_by = a.id 
+                    WHERE 1=1";
+            
+            $params = [];
+            
+            if (!empty($filters['category'])) {
+                $sql .= " AND p.categorie = ?";
+                $params[] = $filters['category'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= " AND p.disponibilite = ?";
+                $params[] = $filters['status'];
+            }
+            
+            if (!empty($filters['location'])) {
+                $sql .= " AND p.lieu LIKE ?";
+                $params[] = "%" . $filters['location'] . "%";
+            }
+            
+            if (!empty($filters['search'])) {
+                $sql .= " AND (p.titre LIKE ? OR p.descriptionp LIKE ? OR u.nom LIKE ?)";
+                $search_pattern = "%" . $filters['search'] . "%";
+                $params[] = $search_pattern;
+                $params[] = $search_pattern;
+                $params[] = $search_pattern;
+            }
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch();
+            return $result ? $result['total'] : 0;
+        } catch (PDOException $e) {
+            error_log("Error counting projects with filters: " . $e->getMessage());
+            return 0;
+        }
+    }
+
     public function getExpiredProjects() {
         try {
             $db = Config::getConnexion();
@@ -401,7 +536,6 @@ class ProjectController {
         }
     }
 
-    // Méthode pour récupérer les projets à venir
     public function getUpcomingProjects() {
         try {
             $db = Config::getConnexion();
@@ -415,6 +549,285 @@ class ProjectController {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching upcoming projects: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    public function getUrgentProjects($days = 7) {
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT p.*, u.nom as association_nom 
+                    FROM projets p 
+                    JOIN utilisateurs u ON p.association = u.id 
+                    WHERE p.date_fin BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+                    AND p.disponibilite = 'disponible'
+                    ORDER BY p.date_fin ASC";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$days]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching urgent projects: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    public function saveProjectToFavorites($user_id, $project_id) {
+        if (empty($user_id) || empty($project_id)) {
+            return false;
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            
+            $check_sql = "SELECT id FROM favoris WHERE id_utilisateur = ? AND id_projet = ?";
+            $check_stmt = $db->prepare($check_sql);
+            $check_stmt->execute([$user_id, $project_id]);
+            
+            if ($check_stmt->rowCount() > 0) {
+                return "Ce projet est déjà dans vos favoris";
+            }
+            
+            $sql = "INSERT INTO favoris (id_utilisateur, id_projet, date_ajout) VALUES (?, ?, NOW())";
+            $stmt = $db->prepare($sql);
+            $result = $stmt->execute([$user_id, $project_id]);
+            
+            return $result ? true : "Erreur lors de l'ajout aux favoris";
+        } catch (PDOException $e) {
+            error_log("Error saving project to favorites: " . $e->getMessage());
+            return "Erreur de base de données: " . $e->getMessage();
+        }
+    }
+    
+    public function removeProjectFromFavorites($user_id, $project_id) {
+        if (empty($user_id) || empty($project_id)) {
+            return false;
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            $sql = "DELETE FROM favoris WHERE id_utilisateur = ? AND id_projet = ?";
+            $stmt = $db->prepare($sql);
+            return $stmt->execute([$user_id, $project_id]);
+        } catch (PDOException $e) {
+            error_log("Error removing project from favorites: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function isProjectInFavorites($user_id, $project_id) {
+        if (empty($user_id) || empty($project_id)) {
+            return false;
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT id FROM favoris WHERE id_utilisateur = ? AND id_projet = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$user_id, $project_id]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error checking favorites: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getSimilarProjects($project_id, $limit = 3) {
+        if (empty($project_id)) {
+            return [];
+        }
+        
+        try {
+            $currentProject = $this->getProjectById($project_id);
+            if (!$currentProject) {
+                return [];
+            }
+            
+            $category = $currentProject['categorie'];
+            
+            $db = Config::getConnexion();
+            $sql = "SELECT p.*, u.nom as association_nom 
+                    FROM projets p 
+                    JOIN utilisateurs u ON p.association = u.id 
+                    WHERE p.categorie = ? AND p.id_projet != ? AND p.disponibilite = 'disponible'
+                    ORDER BY p.date_debut DESC 
+                    LIMIT ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$category, $project_id, $limit]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching similar projects: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getProjectParticipants($project_id) {
+        if (empty($project_id)) {
+            return [];
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT u.id, u.nom, u.email, u.photo, p.date_participation 
+                    FROM participation p 
+                    JOIN utilisateurs u ON p.id_participant = u.id 
+                    WHERE p.id_projet = ? 
+                    ORDER BY p.date_participation DESC";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$project_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching project participants: " . $e->getMessage());
+            return [];
+        }
+    }
+    public function getProjectTasks($project_id) {
+    if (empty($project_id)) {
+        return [];
+    }
+    
+    try {
+        $db = Config::getConnexion();
+        $sql = "SELECT * FROM taches WHERE id_projet = ? ORDER BY id_tache";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$project_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error fetching project tasks: " . $e->getMessage());
+        return [];
+    }
+}
+
+    public function isUserParticipatingInProject($user_id, $project_id) {
+        if (empty($user_id) || empty($project_id)) {
+            return false;
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT id_participant FROM participation WHERE id_participant = ? AND id_projet = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$user_id, $project_id]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error checking user participation: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateProjectAvailability($project_id, $availability) {
+        if (empty($project_id) || empty($availability)) {
+            return false;
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            $sql = "UPDATE projets SET disponibilite = ? WHERE id_projet = ?";
+            $stmt = $db->prepare($sql);
+            $result = $stmt->execute([$availability, $project_id]);
+            
+            return $result ? true : "Erreur lors de la mise à jour du statut";
+        } catch (PDOException $e) {
+            error_log("Error updating project availability: " . $e->getMessage());
+            return "Erreur de base de données: " . $e->getMessage();
+        }
+    }
+
+    public function getProjectsByCreator($admin_id) {
+        if (empty($admin_id)) {
+            return [];
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT p.*, u.nom as association_nom 
+                    FROM projets p 
+                    JOIN utilisateurs u ON p.association = u.id 
+                    WHERE p.created_by = ? 
+                    ORDER BY p.date_debut DESC";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$admin_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching projects by creator: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getRecentProjects($limit = 5) {
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT p.*, u.nom as association_nom 
+                    FROM projets p 
+                    JOIN utilisateurs u ON p.association = u.id 
+                    WHERE p.disponibilite = 'disponible'
+                    ORDER BY p.date_creation DESC 
+                    LIMIT ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$limit]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching recent projects: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function advancedSearch($criteria = []) {
+        try {
+            $db = Config::getConnexion();
+            
+            $sql = "SELECT p.*, u.nom as association_nom, a.nom as admin_nom 
+                    FROM projets p 
+                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN admin a ON p.created_by = a.id 
+                    WHERE 1=1";
+            
+            $params = [];
+            
+            if (!empty($criteria['search'])) {
+                $sql .= " AND (p.titre LIKE ? OR p.descriptionp LIKE ? OR u.nom LIKE ?)";
+                $search_pattern = "%" . $criteria['search'] . "%";
+                $params[] = $search_pattern;
+                $params[] = $search_pattern;
+                $params[] = $search_pattern;
+            }
+            
+            if (!empty($criteria['category'])) {
+                $sql .= " AND p.categorie = ?";
+                $params[] = $criteria['category'];
+            }
+            
+            if (!empty($criteria['status'])) {
+                $sql .= " AND p.disponibilite = ?";
+                $params[] = $criteria['status'];
+            }
+            
+            if (!empty($criteria['location'])) {
+                $sql .= " AND p.lieu LIKE ?";
+                $params[] = "%" . $criteria['location'] . "%";
+            }
+            
+            if (!empty($criteria['start_date'])) {
+                $sql .= " AND p.date_debut >= ?";
+                $params[] = $criteria['start_date'];
+            }
+            
+            if (!empty($criteria['end_date'])) {
+                $sql .= " AND p.date_fin <= ?";
+                $params[] = $criteria['end_date'];
+            }
+            
+            if (!empty($criteria['association'])) {
+                $sql .= " AND u.nom LIKE ?";
+                $params[] = "%" . $criteria['association'] . "%";
+            }
+            
+            $sql .= " ORDER BY p.date_debut DESC";
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in advanced search: " . $e->getMessage());
             return [];
         }
     }

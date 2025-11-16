@@ -744,3 +744,28 @@ body {
         gap: 20px;
     }
 }
+.no-projects-message {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--pistachio-soft);
+    border-radius: 20px;
+    margin-top: 40px;
+    border: 2px dashed var(--pistachio-light);
+}
+
+.no-projects-message i {
+    font-size: 3rem;
+    color: var(--pistachio);
+    margin-bottom: 20px;
+}
+
+.no-projects-message h3 {
+    color: var(--pistachio-dark);
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+.no-projects-message p {
+    color: var(--gray);
+    font-size: 1.1rem;
+}
