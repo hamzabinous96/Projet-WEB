@@ -49,7 +49,29 @@ class ProjectController {
             $disponibilite, $descriptionp, $categorie, $created_by
         );
     }
-    
+    public function getTasksByProject($projectId) {
+    try {
+        $db = Config::getConnexion();
+        $sql = "SELECT * FROM taches WHERE id_projet = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$projectId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Erreur lors de la récupération des tâches: " . $e->getMessage());
+        return [];
+    }
+}
+public function updateTaskStatus($taskId, $status) {
+    try {
+        $db = Config::getConnexion();
+        $sql = "UPDATE taches SET status = ? WHERE id_tache = ?";
+        $stmt = $db->prepare($sql);
+        return $stmt->execute([$status, $taskId]);
+    } catch (PDOException $e) {
+        error_log("Error updating task status: " . $e->getMessage());
+        return false;
+    }
+}
     public function updateProject($id, $titre, $association, $lieu, $date_debut, $date_fin, $disponibilite, $descriptionp, $categorie, $created_by) {
         if (empty($id) || empty($titre) || empty($association) || empty($created_by)) {
             return "Erreur: ID, titre, association et créateur sont obligatoires";
@@ -423,6 +445,7 @@ class ProjectController {
             return false;
         }
     }
+    
 
     public function getProjectsWithPagination($page = 1, $limit = 10, $filters = []) {
         $offset = ($page - 1) * $limit;
@@ -680,23 +703,30 @@ class ProjectController {
             return [];
         }
     }
-    public function getProjectTasks($project_id) {
-    if (empty($project_id)) {
-        return [];
-    }
-    
+public function addTache($nom_tache, $description, $status, $id_projet, $assignee, $created_by) {
     try {
         $db = Config::getConnexion();
-        $sql = "SELECT * FROM taches WHERE id_projet = ? ORDER BY id_tache";
+        $sql = "INSERT INTO taches (nom_tache, description, status, id_projet, assignee, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $db->prepare($sql);
-        $stmt->execute([$project_id]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->execute([$nom_tache, $description, $status, $id_projet, $assignee, $created_by]);
     } catch (PDOException $e) {
-        error_log("Error fetching project tasks: " . $e->getMessage());
-        return [];
+        error_log("Error adding task: " . $e->getMessage());
+        return false;
     }
 }
 
+
+
+public function getLastInsertId() {
+    try {
+        $db = Config::getConnexion();
+        return $db->lastInsertId();
+    } catch (PDOException $e) {
+        error_log("Error getting last insert ID: " . $e->getMessage());
+        return false;
+    }
+}
     public function isUserParticipatingInProject($user_id, $project_id) {
         if (empty($user_id) || empty($project_id)) {
             return false;

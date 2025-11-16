@@ -4,16 +4,13 @@ require_once(__DIR__ . '/../../CONTROLLER/ProjectController.php');
 
 $projectController = new ProjectController();
 
-// Variables pour les messages
 $message = "";
 $message_type = "";
 
-// Récupérer les associations RÉELLES depuis la base de données
 $associations = $projectController->getAssociations();
 $admins = $projectController->getAdmins();
 $categories = $projectController->getCategories();
 
-// Traitement du formulaire d'ajout de projet
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     $titre = $_POST['titre'];
     $association = $_POST['association'] ?? null;
@@ -24,23 +21,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     $descriptionp = $_POST['descriptionp'];
     $categorie = $_POST['categorie'];
     $created_by = $_POST['created_by'];
+    $taches = $_POST['taches'] ?? [];
 
-    // Validation que l'association est sélectionnée
     if (empty($association)) {
         $message = "Erreur: Vous devez sélectionner une association";
         $message_type = "error";
     } else {
-        // Ajouter le projet via le Controller
         $result = $projectController->addProject(
             $titre, $association, $lieu, $date_debut, $date_fin, 
             $disponibilite, $descriptionp, $categorie, $created_by
         );
         
         if ($result === true) {
-            $message = "Projet ajouté avec succès!";
-            $message_type = "success";
+            $lastProjectId = $projectController->getLastInsertId();
             
-            // Recharger la page pour vider le formulaire et afficher les nouvelles données
+            if ($lastProjectId && !empty($taches)) {
+                foreach ($taches as $tache) {
+                    if (!empty(trim($tache['nom']))) {
+                        $projectController->addTache(
+                            $tache['nom'],
+                            $tache['description'] ?? '',
+                            'en_attente',
+                            $lastProjectId,
+                            $tache['assignee'] ?? null,
+                            $created_by
+                        );
+                    }
+                }
+            }
+            
+            $message = "Projet et tâches ajoutés avec succès!";
+            $message_type = "success";
             echo "<script>window.location.href = window.location.href.split('?')[0];</script>";
             exit;
         } else {
@@ -50,15 +61,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     }
 }
 
-// Traitement de la suppression de projet avec confirmation
 if (isset($_GET['supprimer']) && isset($_GET['confirm']) && $_GET['confirm'] === 'oui') {
     $id = $_GET['supprimer'];
     
     if ($projectController->deleteProject($id)) {
         $message = "Projet supprimé avec succès!";
         $message_type = "success";
-        
-        // Recharger la page pour afficher les données mises à jour
         header("Location: " . str_replace('?supprimer=' . $id . '&confirm=oui', '', $_SERVER['REQUEST_URI']));
         exit;
     } else {
@@ -67,15 +75,12 @@ if (isset($_GET['supprimer']) && isset($_GET['confirm']) && $_GET['confirm'] ===
     }
 }
 
-// Récupérer tous les projets
 $projects = $projectController->getAllProjects();
 
-// Calculer les statistiques
 $projetsCrees = $projectController->getProjectsCount();
 $projetsDisponibles = $projectController->getAvailableProjectsCount();
 $participationTotale = $projectController->getTotalParticipants();
 
-// Pour les projets supprimés
 $projetsSupprimes = 0;
 ?>
 
@@ -88,7 +93,6 @@ $projetsSupprimes = 0;
   <link rel="stylesheet" href="../style/listerprojet.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
 </head>
 <body>
   <div class="admin-wrapper">
@@ -201,7 +205,6 @@ $projetsSupprimes = 0;
     </div>
   </div>
 
-  <!-- Modal pour ajouter un projet -->
   <div class="modal-overlay" id="projectModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -211,12 +214,12 @@ $projetsSupprimes = 0;
       <form method="POST" action="" id="projectForm">
         <div class="modal-body">
           <div class="form-group">
-            <label for="titre">Titre *</label>
+            <label for="titre">Titre <span class="required">*</span></label>
             <input type="text" id="titre" name="titre" class="form-control" required>
           </div>
           
           <div class="form-group">
-            <label for="association">Association *</label>
+            <label for="association">Association <span class="required">*</span></label>
             <?php if (!empty($associations)): ?>
               <select id="association" name="association" class="form-control" required>
                 <option value="">Sélectionner une association</option>
@@ -269,7 +272,7 @@ $projetsSupprimes = 0;
           <div class="form-group">
             <label for="categorie">Catégorie</label>
             <select id="categorie" name="categorie" class="form-control">
-                 <option value="">Sélectionner</option>
+              <option value="">Sélectionner</option>
               <option value="Solidarité">Solidarité</option>
               <option value="Environement">Environement</option>
               <option value="Education">Education</option>
@@ -280,7 +283,7 @@ $projetsSupprimes = 0;
           </div>
           
           <div class="form-group">
-            <label for="created_by">Créé par *</label>
+            <label for="created_by">Créé par <span class="required">*</span></label>
             <select id="created_by" name="created_by" class="form-control" required>
               <option value="">Sélectionner un administrateur</option>
               <?php foreach($admins as $admin): ?>
@@ -289,6 +292,15 @@ $projetsSupprimes = 0;
                 </option>
               <?php endforeach; ?>
             </select>
+          </div>
+
+          <div class="taches-section">
+            <h3>Tâches du Projet</h3>
+            <button type="button" class="btn-add-tache" id="addTache">
+              <i class="fas fa-plus"></i> Ajouter une tâche
+            </button>
+            
+            <div id="taches-container"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -299,7 +311,6 @@ $projetsSupprimes = 0;
     </div>
   </div>
 
-  <!-- Modal de confirmation de suppression -->
   <div class="confirmation-modal" id="confirmationModal">
     <div class="confirmation-content">
       <div class="confirmation-header">
@@ -316,25 +327,82 @@ $projetsSupprimes = 0;
   </div>
 
   <script>
-    // Gestion du modal d'ajout de projet
+    let tacheCount = 0;
+    
+    document.getElementById('addTache').addEventListener('click', function() {
+      const container = document.getElementById('taches-container');
+      const tacheItem = document.createElement('div');
+      tacheItem.className = 'tache-item';
+      tacheItem.setAttribute('data-index', tacheCount);
+      
+      tacheItem.innerHTML = `
+        <div class="tache-header">
+          <span class="tache-title">Tâche #${tacheCount + 1}</span>
+          <button type="button" class="btn-remove-tache" onclick="removeTache(this)">
+            <i class="fas fa-times"></i> Supprimer
+          </button>
+        </div>
+        <div class="form-group">
+          <label>Nom de la tâche</label>
+          <input type="text" name="taches[${tacheCount}][nom]" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="taches[${tacheCount}][description]" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Assigné à</label>
+          <select name="taches[${tacheCount}][assignee]" class="form-control">
+            <option value="">Non assigné</option>
+            <?php foreach($associations as $assoc): ?>
+              <option value="<?php echo $assoc['id']; ?>"><?php echo htmlspecialchars($assoc['nom']); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      `;
+      
+      container.appendChild(tacheItem);
+      tacheCount++;
+    });
+    
+    function removeTache(button) {
+      const tacheItem = button.closest('.tache-item');
+      tacheItem.remove();
+      updateTacheNumbers();
+    }
+    
+    function updateTacheNumbers() {
+      const tacheItems = document.querySelectorAll('.tache-item');
+      tacheItems.forEach((item, index) => {
+        const title = item.querySelector('.tache-title');
+        title.textContent = `Tâche #${index + 1}`;
+        
+        const inputs = item.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+          const name = input.getAttribute('name');
+          if (name) {
+            input.setAttribute('name', name.replace(/taches\[\d+\]/, `taches[${index}]`));
+          }
+        });
+      });
+      tacheCount = tacheItems.length;
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
       const modal = document.getElementById('projectModal');
       const addBtn = document.getElementById('addProjectBtn');
       const closeBtn = document.getElementById('closeModal');
       const cancelBtn = document.getElementById('cancelBtn');
       
-      // Modal de confirmation
       const confirmationModal = document.getElementById('confirmationModal');
       const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
       const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
       const confirmationMessage = document.getElementById('confirmationMessage');
       
-      // Ouvrir le modal d'ajout
       addBtn.addEventListener('click', function() {
         modal.style.display = 'flex';
       });
       
-      // Fermer le modal d'ajout
       function closeModal() {
         modal.style.display = 'none';
       }
@@ -342,14 +410,12 @@ $projetsSupprimes = 0;
       closeBtn.addEventListener('click', closeModal);
       cancelBtn.addEventListener('click', closeModal);
       
-      // Fermer le modal d'ajout en cliquant à l'extérieur
       modal.addEventListener('click', function(e) {
         if (e.target === modal) {
           closeModal();
         }
       });
 
-      // Empêcher l'ouverture du modal s'il n'y a pas d'associations
       addBtn.addEventListener('click', function(e) {
         <?php if (empty($associations)): ?>
           e.preventDefault();
@@ -357,41 +423,82 @@ $projetsSupprimes = 0;
         <?php endif; ?>
       });
 
-      // Gestion des boutons de suppression
       document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', function(e) {
           e.preventDefault();
           const projectId = this.getAttribute('data-project-id');
           const projectName = this.getAttribute('data-project-name');
           
-          // Mettre à jour le message de confirmation
           confirmationMessage.textContent = `Êtes-vous sûr de vouloir supprimer le projet "${projectName}" ? Cette action est irréversible.`;
-          
-          // Mettre à jour le lien de confirmation
           confirmDeleteBtn.href = `?supprimer=${projectId}&confirm=oui`;
-          
-          // Afficher le modal de confirmation
           confirmationModal.style.display = 'flex';
         });
       });
 
-      // Fermer le modal de confirmation
       function closeConfirmationModal() {
         confirmationModal.style.display = 'none';
       }
 
       cancelDeleteBtn.addEventListener('click', closeConfirmationModal);
       
-      // Fermer le modal de confirmation en cliquant à l'extérieur
       confirmationModal.addEventListener('click', function(e) {
         if (e.target === confirmationModal) {
           closeConfirmationModal();
         }
       });
 
-      // Confirmer la suppression (le lien fait déjà l'action)
       confirmDeleteBtn.addEventListener('click', function() {
         closeConfirmationModal();
+      });
+
+      // Solution améliorée pour la validation des dates
+      const dateDebut = document.getElementById('date_debut');
+      const dateFin = document.getElementById('date_fin');
+      
+      if (dateDebut && dateFin) {
+        // Utiliser l'événement 'input' au lieu de 'change' pour une meilleure réactivité
+        dateDebut.addEventListener('input', function() {
+          if (dateFin.value && this.value > dateFin.value) {
+            // Ne pas réinitialiser, mais ajuster automatiquement la date de fin
+            dateFin.value = this.value;
+          }
+        });
+        
+        dateFin.addEventListener('input', function() {
+          if (dateDebut.value && this.value < dateDebut.value) {
+            // Ne pas réinitialiser, mais ajuster automatiquement la date de début
+            dateDebut.value = this.value;
+          }
+        });
+
+        // Solution alternative : validation seulement à la soumission du formulaire
+        const form = document.getElementById('projectForm');
+        form.addEventListener('submit', function(e) {
+          if (dateDebut.value && dateFin.value && dateDebut.value > dateFin.value) {
+            e.preventDefault();
+            // Afficher un message d'erreur élégant
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-error';
+            errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> La date de début ne peut pas être après la date de fin.';
+            
+            // Insérer le message d'erreur après le form-row des dates
+            const dateRow = document.querySelector('.form-row');
+            dateRow.parentNode.insertBefore(errorDiv, dateRow.nextSibling);
+            
+            // Supprimer le message après 5 secondes
+            setTimeout(() => {
+              errorDiv.remove();
+            }, 5000);
+          }
+        });
+      }
+      
+      const form = document.getElementById('projectForm');
+      form.addEventListener('submit', function(e) {
+        <?php if (empty($associations)): ?>
+          e.preventDefault();
+          alert('Aucune association disponible. Créez d\'abord des associations dans la base de données.');
+        <?php endif; ?>
       });
     });
   </script>

@@ -4,15 +4,12 @@ require_once(__DIR__ . '/../../CONTROLLER/ProjectController.php');
 
 $projectController = new ProjectController();
 
-// Variables pour les messages
 $message = "";
 $message_type = "";
 
-// Récupérer les associations RÉELLES depuis la base de données
 $associations = $projectController->getAssociations();
 $admins = $projectController->getAdmins();
 
-// Traitement du formulaire d'ajout de projet
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     $titre = $_POST['titre'];
     $association = $_POST['association'] ?? null;
@@ -23,24 +20,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     $descriptionp = $_POST['descriptionp'];
     $categorie = $_POST['categorie'];
     $created_by = $_POST['created_by'];
+    $taches = $_POST['taches'] ?? [];
 
-    // Validation que l'association est sélectionnée
     if (empty($association)) {
         $message = "Erreur: Vous devez sélectionner une association";
         $message_type = "error";
     } else {
-        // Ajouter le projet via le Controller
         $result = $projectController->addProject(
             $titre, $association, $lieu, $date_debut, $date_fin, 
             $disponibilite, $descriptionp, $categorie, $created_by
         );
         
         if ($result === true) {
-            $message = "Projet ajouté avec succès!";
-            $message_type = "success";
+            $lastProjectId = $projectController->getLastInsertId();
             
-            // Redirection vers la page principale après succès
-            header("Location: project_connect1.php?message=success&action=added");
+            if ($lastProjectId && !empty($taches)) {
+                foreach ($taches as $tache) {
+                    if (!empty(trim($tache['nom']))) {
+                        $projectController->addTache(
+                            $tache['nom'],
+                            $tache['description'] ?? '',
+                            'en_attente',
+                            $lastProjectId,
+                            $tache['assignee'] ?? null,
+                            $created_by
+                        );
+                    }
+                }
+            }
+            
+            $message = "Projet et tâches ajoutés avec succès!";
+            $message_type = "success";
+            header("Location: listerprojet.php?message=success&action=added");
             exit;
         } else {
             $message = "Erreur lors de l'ajout du projet: " . $result;
@@ -56,220 +67,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin Panel - Ajouter un Projet</title>
-  <link rel="stylesheet" href="../style/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <style>
-    .admin-wrapper {
-      display: flex;
-      min-height: 100vh;
-    }
-    
-    .sidebar {
-      width: 250px;
-      background-color: #2c3e50;
-      color: white;
-    }
-    
-    .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid #34495e;
-    }
-    
-    .sidebar-header h2 {
-      margin: 0;
-      font-size: 20px;
-    }
-    
-    .sidebar-nav ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    .sidebar-nav li {
-      border-bottom: 1px solid #34495e;
-    }
-    
-    .sidebar-nav a {
-      display: flex;
-      align-items: center;
-      padding: 15px 20px;
-      color: #bdc3c7;
-      text-decoration: none;
-      transition: all 0.3s ease;
-    }
-    
-    .sidebar-nav a:hover,
-    .sidebar-nav a.active {
-      background-color: #34495e;
-      color: white;
-    }
-    
-    .sidebar-nav i {
-      margin-right: 10px;
-      width: 20px;
-      text-align: center;
-    }
-    
-    .main-content {
-      flex: 1;
-      background-color: #f5f7fa;
-      padding: 20px;
-    }
-    
-    .topbar {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-      margin-bottom: 20px;
-    }
-    
-    .header-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .title {
-      margin: 0;
-      color: #333;
-    }
-    
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      font-family: 'Poppins', sans-serif;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-decoration: none;
-      display: inline-block;
-      text-align: center;
-    }
-    
-    .btn-primary {
-      background-color: #4a6cf7;
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background-color: #3a5ce5;
-    }
-    
-    .btn-secondary {
-      background-color: #f0f0f0;
-      color: #333;
-    }
-    
-    .btn-secondary:hover {
-      background-color: #e0e0e0;
-    }
-    
-    .card {
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-      overflow: hidden;
-    }
-    
-    .card-header {
-      padding: 20px;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .card-header h3 {
-      margin: 0;
-      color: #333;
-    }
-    
-    .card-body {
-      padding: 20px;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: #333;
-    }
-    
-    .form-control {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-family: 'Poppins', sans-serif;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    
-    .form-control:focus {
-      outline: none;
-      border-color: #4a6cf7;
-      box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.2);
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 15px;
-    }
-    
-    .form-row .form-group {
-      flex: 1;
-    }
-    
-    textarea.form-control {
-      min-height: 100px;
-      resize: vertical;
-    }
-    
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
-    }
-    
-    .alert {
-      padding: 12px 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-
-    .alert-success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .alert-error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .no-associations {
-      background-color: #fff3cd;
-      border: 1px solid #ffeaa7;
-      color: #856404;
-      padding: 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-    
-    .required {
-      color: #dc3545;
-    }
-  </style>
 </head>
 <body>
   <div class="admin-wrapper">
@@ -403,6 +202,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
                 <?php endforeach; ?>
               </select>
             </div>
+
+            <div class="taches-section">
+              <h3>Tâches du Projet</h3>
+              <button type="button" class="btn-add-tache" id="addTache">
+                <i class="fas fa-plus"></i> Ajouter une tâche
+              </button>
+              
+              <div id="taches-container">
+                <?php if (isset($_POST['taches']) && is_array($_POST['taches'])): ?>
+                  <?php foreach($_POST['taches'] as $index => $tache): ?>
+                    <div class="tache-item" data-index="<?php echo $index; ?>">
+                      <div class="tache-header">
+                        <span class="tache-title">Tâche #<?php echo $index + 1; ?></span>
+                        <button type="button" class="btn-remove-tache" onclick="removeTache(this)">
+                          <i class="fas fa-times"></i> Supprimer
+                        </button>
+                      </div>
+                      <div class="form-group">
+                        <label>Nom de la tâche</label>
+                        <input type="text" name="taches[<?php echo $index; ?>][nom]" class="form-control" 
+                               value="<?php echo htmlspecialchars($tache['nom'] ?? ''); ?>" required>
+                      </div>
+                      <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="taches[<?php echo $index; ?>][description]" class="form-control"><?php echo htmlspecialchars($tache['description'] ?? ''); ?></textarea>
+                      </div>
+                      <div class="form-group">
+                        <label>Assigné à</label>
+                        <select name="taches[<?php echo $index; ?>][assignee]" class="form-control">
+                          <option value="">Non assigné</option>
+                          <?php foreach($associations as $assoc): ?>
+                            <option value="<?php echo $assoc['id']; ?>"
+                              <?php echo (isset($tache['assignee']) && $tache['assignee'] == $assoc['id']) ? 'selected' : ''; ?>>
+                              <?php echo htmlspecialchars($assoc['nom']); ?>
+                            </option>
+                          <?php endforeach; ?>
+                        </select>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
+            </div>
             
             <div class="form-actions">
               <a href="listerprojet.php" class="btn btn-secondary">Annuler</a>
@@ -417,8 +259,68 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
   </div>
 
   <script>
+    let tacheCount = <?php echo isset($_POST['taches']) ? count($_POST['taches']) : 0; ?>;
+    
+    document.getElementById('addTache').addEventListener('click', function() {
+      const container = document.getElementById('taches-container');
+      const tacheItem = document.createElement('div');
+      tacheItem.className = 'tache-item';
+      tacheItem.setAttribute('data-index', tacheCount);
+      
+      tacheItem.innerHTML = `
+        <div class="tache-header">
+          <span class="tache-title">Tâche #${tacheCount + 1}</span>
+          <button type="button" class="btn-remove-tache" onclick="removeTache(this)">
+            <i class="fas fa-times"></i> Supprimer
+          </button>
+        </div>
+        <div class="form-group">
+          <label>Nom de la tâche</label>
+          <input type="text" name="taches[${tacheCount}][nom]" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="taches[${tacheCount}][description]" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Assigné à</label>
+          <select name="taches[${tacheCount}][assignee]" class="form-control">
+            <option value="">Non assigné</option>
+            <?php foreach($associations as $assoc): ?>
+              <option value="<?php echo $assoc['id']; ?>"><?php echo htmlspecialchars($assoc['nom']); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      `;
+      
+      container.appendChild(tacheItem);
+      tacheCount++;
+    });
+    
+    function removeTache(button) {
+      const tacheItem = button.closest('.tache-item');
+      tacheItem.remove();
+      updateTacheNumbers();
+    }
+    
+    function updateTacheNumbers() {
+      const tacheItems = document.querySelectorAll('.tache-item');
+      tacheItems.forEach((item, index) => {
+        const title = item.querySelector('.tache-title');
+        title.textContent = `Tâche #${index + 1}`;
+        
+        const inputs = item.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+          const name = input.getAttribute('name');
+          if (name) {
+            input.setAttribute('name', name.replace(/taches\[\d+\]/, `taches[${index}]`));
+          }
+        });
+      });
+      tacheCount = tacheItems.length;
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
-      // Validation des dates
       const dateDebut = document.getElementById('date_debut');
       const dateFin = document.getElementById('date_fin');
       
@@ -438,7 +340,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
         });
       }
       
-      // Empêcher la soumission si pas d'associations
       const form = document.getElementById('projectForm');
       form.addEventListener('submit', function(e) {
         <?php if (empty($associations)): ?>

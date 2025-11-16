@@ -14,6 +14,25 @@ if (!$project) {
 }
 
 $participantsCount = $projectController->getParticipantsCount($projectId);
+$projectTasks = $projectController->getTasksByProject($projectId);
+
+// Traitement de la confirmation de participation
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_participation'])) {
+    $selectedTasks = $_POST['selected_tasks'] ?? [];
+    
+    if (!empty($selectedTasks)) {
+        // Mettre à jour le statut de chaque tâche sélectionnée
+        foreach ($selectedTasks as $taskId) {
+            $projectController->updateTaskStatus($taskId, 'prise');
+        }
+        
+        // Recharger les tâches pour afficher les nouveaux statuts
+        $projectTasks = $projectController->getTasksByProject($projectId);
+        
+        $message = "Votre participation a été enregistrée avec succès! Les tâches sélectionnées sont maintenant marquées comme 'prises'.";
+        $message_type = "success";
+    }
+}
 
 $projectTitle = htmlspecialchars($project['titre']);
 $projectCategory = htmlspecialchars($project['categorie']);
@@ -64,6 +83,177 @@ $categoryNames = [
   <link rel="stylesheet" href="../style/projects.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Styles pour les tâches */
+    .task-preview-item {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 4px solid #007bff;
+        transition: all 0.3s ease;
+    }
+
+    .task-preview-item.prise {
+        border-left-color: #28a745;
+        background: #f0fff4;
+    }
+
+    .task-preview-item.en_attente {
+        border-left-color: #ffc107;
+        background: #fffbf0;
+    }
+
+    .task-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-top: 8px;
+    }
+
+    .task-status.en_attente {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .task-status.prise {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .task-status.termine {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    /* Styles pour la modal des tâches */
+    .task-item {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .task-item:hover {
+        border-color: #007bff;
+    }
+
+    .task-item.task-taken {
+        opacity: 0.6;
+        background-color: #f8f9fa;
+        border-color: #6c757d;
+    }
+
+    .task-checkbox {
+        margin-right: 10px;
+    }
+
+    .task-label {
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .task-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .task-description {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    .task-status-indicator {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        align-self: flex-start;
+    }
+
+    .task-status-indicator.en_attente {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .task-status-indicator.prise {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .selected-task-item {
+        background: #e7f3ff;
+        border: 1px solid #007bff;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .selected-task-item i {
+        color: #007bff;
+    }
+
+    .success-task-item {
+        background: #f0fff4;
+        border: 1px solid #28a745;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .success-task-item i {
+        color: #28a745;
+    }
+
+    .no-tasks-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+
+    .no-tasks-message i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: #dee2e6;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        border-left: 4px solid;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border-left-color: #28a745;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border-left-color: #dc3545;
+    }
+  </style>
 </head>
 <body>
 
@@ -110,6 +300,14 @@ $categoryNames = [
      data-project-availability="<?php echo $availability; ?>"
      data-project-category="<?php echo $projectCategory; ?>"
      data-participants-count="<?php echo $participantsCount; ?>">
+    
+    <?php if (isset($message)): ?>
+        <div class="alert alert-<?php echo $message_type; ?>">
+            <i class="fas fa-check-circle"></i>
+            <?php echo $message; ?>
+        </div>
+    <?php endif; ?>
+
     <div class="project-header">
         <div class="project-meta">
             <div class="meta-badges">
@@ -187,6 +385,36 @@ $categoryNames = [
                     </div>
                 </div>
             </section>
+
+            <!-- Section Tâches du Projet -->
+            <?php if (!empty($projectTasks)): ?>
+            <section class="project-section">
+                <h2>Tâches du Projet</h2>
+                <div class="tasks-preview">
+                    <?php foreach($projectTasks as $index => $task): ?>
+                        <?php $taskStatus = $task['status'] ?? 'en_attente'; ?>
+                        <div class="task-preview-item <?php echo $taskStatus; ?>">
+                            <i class="fas fa-tasks"></i>
+                            <div class="task-preview-content">
+                                <h4><?php echo htmlspecialchars($task['nom_tache']); ?></h4>
+                                <p><?php echo htmlspecialchars($task['description'] ?? 'Aucune description'); ?></p>
+                                <span class="task-status <?php echo $taskStatus; ?>">
+                                    <?php 
+                                    if ($taskStatus === 'prise') {
+                                        echo '✅ Tâche prise en charge';
+                                    } elseif ($taskStatus === 'en_attente') {
+                                        echo '⏳ En attente';
+                                    } else {
+                                        echo htmlspecialchars($taskStatus);
+                                    }
+                                    ?>
+                                </span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+            <?php endif; ?>
         </div>
 
         <div class="project-sidebar">
@@ -243,84 +471,71 @@ $categoryNames = [
     </div>
 </div>
 
+<!-- Modal des tâches avec formulaire -->
 <div class="modal" id="taskModal">
   <div class="modal-content task-modal-content">
     <button class="close-btn" id="closeTaskModal">✕</button>
     <h3>Choisissez vos tâches</h3>
     <p class="modal-subtitle">Sélectionnez les tâches que vous souhaitez accomplir dans ce projet</p>
     
-    <div class="tasks-list" id="tasksList">
-        <div class="task-item">
-            <input type="checkbox" id="task1" class="task-checkbox">
-            <label for="task1" class="task-label">
-                <span class="task-title">Distribution de nourriture</span>
-                <span class="task-description">Aider à la distribution de repas aux personnes dans le besoin</span>
-            </label>
+    <form method="POST" action="" id="participationForm">
+        <div class="tasks-list" id="tasksList">
+            <?php if (!empty($projectTasks)): ?>
+                <?php foreach($projectTasks as $index => $task): ?>
+                    <?php 
+                    $taskStatus = $task['status'] ?? 'en_attente';
+                    $isTaken = $taskStatus === 'prise';
+                    ?>
+                    <div class="task-item <?php echo $isTaken ? 'task-taken' : ''; ?>">
+                        <input type="checkbox" 
+                               id="task<?php echo $task['id_tache']; ?>" 
+                               class="task-checkbox" 
+                               name="selected_tasks[]"
+                               value="<?php echo $task['id_tache']; ?>"
+                               <?php echo $isTaken ? 'disabled' : ''; ?>
+                               data-task-id="<?php echo $task['id_tache']; ?>">
+                        <label for="task<?php echo $task['id_tache']; ?>" class="task-label">
+                            <span class="task-title">
+                                <?php echo htmlspecialchars($task['nom_tache']); ?>
+                            </span>
+                            <span class="task-description">
+                                <?php echo htmlspecialchars($task['description'] ?? 'Aucune description disponible'); ?>
+                            </span>
+                            <span class="task-status-indicator <?php echo $taskStatus; ?>">
+                                <?php 
+                                if ($isTaken) {
+                                    echo '❌ Déjà prise';
+                                } else {
+                                    echo '✅ Disponible';
+                                }
+                                ?>
+                            </span>
+                        </label>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="no-tasks-message">
+                    <i class="fas fa-tasks"></i>
+                    <p>Aucune tâche disponible pour ce projet</p>
+                </div>
+            <?php endif; ?>
         </div>
-        <div class="task-item">
-            <input type="checkbox" id="task2" class="task-checkbox">
-            <label for="task2" class="task-label">
-                <span class="task-title">Animation d'ateliers</span>
-                <span class="task-description">Participer à l'animation des activités éducatives</span>
-            </label>
+        
+        <div class="selected-tasks-summary">
+            <h4>Tâches sélectionnées :</h4>
+            <div class="selected-tasks" id="selectedTasks">
+                <p class="no-tasks">Aucune tâche sélectionnée</p>
+            </div>
         </div>
-        <div class="task-item">
-            <input type="checkbox" id="task3" class="task-checkbox">
-            <label for="task3" class="task-label">
-                <span class="task-title">Logistique</span>
-                <span class="task-description">Aide à l'organisation et la préparation des événements</span>
-            </label>
+        
+        <div class="task-modal-actions">
+            <button type="button" class="btn-secondary" id="cancelTaskSelection">Annuler</button>
+            <button type="submit" name="confirm_participation" class="btn-primary" id="confirmParticipation" disabled>
+                Confirmer la participation
+                <i class="fas fa-check"></i>
+            </button>
         </div>
-    </div>
-    
-    <div class="selected-tasks-summary">
-      <h4>Tâches sélectionnées :</h4>
-      <div class="selected-tasks" id="selectedTasks">
-        <p class="no-tasks">Aucune tâche sélectionnée</p>
-      </div>
-    </div>
-    
-    <div class="task-modal-actions">
-      <button class="btn-secondary" id="cancelTaskSelection">Annuler</button>
-      <button class="btn-primary" id="confirmParticipation" disabled>
-        Confirmer la participation
-        <i class="fas fa-check"></i>
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="successModal">
-  <div class="modal-content success-modal-content">
-    <div class="success-icon">
-      <i class="fas fa-check-circle"></i>
-    </div>
-    <h3>Participation confirmée !</h3>
-    <p>Votre participation au projet "<span id="successProjectTitle"><?php echo $projectTitle; ?></span>" a été enregistrée avec succès.</p>
-    <div class="success-details">
-        <div class="success-item">
-            <i class="fas fa-project-diagram"></i>
-            <span id="successProjectName"><?php echo $projectTitle; ?></span>
-        </div>
-        <div class="success-item">
-            <i class="fas fa-building"></i>
-            <span id="successAssociation"><?php echo $projectAssociation; ?></span>
-        </div>
-        <div class="success-item">
-            <i class="fas fa-map-marker-alt"></i>
-            <span id="successLocation"><?php echo $projectLocation; ?></span>
-        </div>
-    </div>
-    <div class="success-actions">
-        <button class="btn-secondary" onclick="location.href='projects.php'">
-            <i class="fas fa-arrow-left"></i>
-            Retour aux projets
-        </button>
-        <button class="btn-primary" id="closeSuccessModal">
-            Continuer
-            <i class="fas fa-arrow-right"></i>
-        </button>
-    </div>
+    </form>
   </div>
 </div>
 
@@ -383,6 +598,89 @@ $categoryNames = [
     </div>
 </footer>
 
-<script src="../js/details.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const participateBtn = document.getElementById('participateBtn');
+    const taskModal = document.getElementById('taskModal');
+    const closeTaskModal = document.getElementById('closeTaskModal');
+    const cancelTaskSelection = document.getElementById('cancelTaskSelection');
+    const confirmParticipation = document.getElementById('confirmParticipation');
+    const taskCheckboxes = document.querySelectorAll('.task-checkbox:not(:disabled)');
+    const selectedTasksContainer = document.getElementById('selectedTasks');
+
+    let selectedTasks = [];
+
+    // Ouvrir la modal des tâches
+    participateBtn.addEventListener('click', function() {
+        taskModal.style.display = 'flex';
+        selectedTasks = [];
+        updateSelectedTasksUI();
+    });
+
+    // Fermer la modal des tâches
+    closeTaskModal.addEventListener('click', closeTaskModalFunc);
+    cancelTaskSelection.addEventListener('click', closeTaskModalFunc);
+
+    function closeTaskModalFunc() {
+        taskModal.style.display = 'none';
+        // Réinitialiser les sélections
+        taskCheckboxes.forEach(checkbox => {
+            if (!checkbox.disabled) {
+                checkbox.checked = false;
+            }
+        });
+        selectedTasks = [];
+        updateSelectedTasksUI();
+    }
+
+    // Gérer la sélection des tâches
+    taskCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.disabled) return;
+            
+            const taskId = this.value;
+            const taskLabel = this.parentElement.querySelector('.task-title').textContent;
+            
+            if (this.checked) {
+                selectedTasks.push({
+                    id: taskId,
+                    name: taskLabel
+                });
+            } else {
+                selectedTasks = selectedTasks.filter(task => task.id !== taskId);
+            }
+            
+            updateSelectedTasksUI();
+            updateConfirmButton();
+        });
+    });
+
+    // Mettre à jour l'affichage des tâches sélectionnées
+    function updateSelectedTasksUI() {
+        if (selectedTasks.length === 0) {
+            selectedTasksContainer.innerHTML = '<p class="no-tasks">Aucune tâche sélectionnée</p>';
+        } else {
+            selectedTasksContainer.innerHTML = selectedTasks.map(task => 
+                `<div class="selected-task-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${task.name}</span>
+                </div>`
+            ).join('');
+        }
+    }
+
+    // Activer/désactiver le bouton de confirmation
+    function updateConfirmButton() {
+        confirmParticipation.disabled = selectedTasks.length === 0;
+    }
+
+    // Fermer les modales en cliquant à l'extérieur
+    window.addEventListener('click', function(event) {
+        if (event.target === taskModal) {
+            closeTaskModalFunc();
+        }
+    });
+});
+</script>
 </body>
 </html>
