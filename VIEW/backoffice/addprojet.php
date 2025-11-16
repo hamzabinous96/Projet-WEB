@@ -280,7 +280,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
       <nav class="sidebar-nav">
         <ul>
           <li><a href="backoffice.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-          <li><a href="project_connect1.php"><i class="fas fa-project-diagram"></i> Projets</a></li>
+          <li><a href="listerprojet.php"><i class="fas fa-project-diagram"></i> Projets</a></li>
           <li><a href="addprojet.php" class="active"><i class="fas fa-plus"></i> Ajouter Projet</a></li>
           <li><a href="#"><i class="fas fa-users"></i> Utilisateurs</a></li>
           <li><a href="#"><i class="fas fa-cog"></i> Paramètres</a></li>
@@ -292,7 +292,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
       <header class="topbar">
         <div class="header-inner">
           <h1 class="title">Ajouter un Nouveau Projet</h1>
-          <a href="project_connect1.php" class="btn btn-secondary">
+          <a href="listerprojet.php" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Retour à la liste
           </a>
         </div>
@@ -405,7 +405,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
             </div>
             
             <div class="form-actions">
-              <a href="project_connect1.php" class="btn btn-secondary">Annuler</a>
+              <a href="listerprojet.php" class="btn btn-secondary">Annuler</a>
               <button type="submit" name="ajouter_projet" class="btn btn-primary" <?php echo empty($associations) ? 'disabled' : ''; ?>>
                 <i class="fas fa-plus"></i> Ajouter le projet
               </button>

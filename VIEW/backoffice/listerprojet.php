@@ -50,8 +50,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     }
 }
 
-// Traitement de la suppression de projet
-if (isset($_GET['supprimer'])) {
+// Traitement de la suppression de projet avec confirmation
+if (isset($_GET['supprimer']) && isset($_GET['confirm']) && $_GET['confirm'] === 'oui') {
     $id = $_GET['supprimer'];
     
     if ($projectController->deleteProject($id)) {
@@ -59,7 +59,7 @@ if (isset($_GET['supprimer'])) {
         $message_type = "success";
         
         // Recharger la page pour afficher les données mises à jour
-        header("Location: " . str_replace('?supprimer=' . $id, '', $_SERVER['REQUEST_URI']));
+        header("Location: " . str_replace('?supprimer=' . $id . '&confirm=oui', '', $_SERVER['REQUEST_URI']));
         exit;
     } else {
         $message = "Erreur lors de la suppression du projet";
@@ -85,372 +85,10 @@ $projetsSupprimes = 0;
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin Panel - Gestion des Projets</title>
-  <link rel="stylesheet" href="../style/style.css" />
+  <link rel="stylesheet" href="../style/listerprojet.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <style>
-    /* Styles pour le modal de formulaire */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .modal-content {
-      background-color: white;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 600px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    }
-    
-    .modal-header {
-      padding: 20px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .modal-header h2 {
-      margin: 0;
-      color: #333;
-    }
-    
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #666;
-    }
-    
-    .close-btn:hover {
-      color: #333;
-    }
-    
-    .modal-body {
-      padding: 20px;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: #333;
-    }
-    
-    .form-control {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-family: 'Poppins', sans-serif;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    
-    .form-control:focus {
-      outline: none;
-      border-color: #4a6cf7;
-      box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.2);
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 15px;
-    }
-    
-    .form-row .form-group {
-      flex: 1;
-    }
-    
-    textarea.form-control {
-      min-height: 100px;
-      resize: vertical;
-    }
-    
-    .modal-footer {
-      padding: 20px;
-      border-top: 1px solid #eee;
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-    
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      font-family: 'Poppins', sans-serif;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-primary {
-      background-color: #4a6cf7;
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background-color: #3a5ce5;
-    }
-    
-    .btn-secondary {
-      background-color: #f0f0f0;
-      color: #333;
-    }
-    
-    .btn-secondary:hover {
-      background-color: #e0e0e0;
-    }
-    
-    .btn-danger {
-      background-color: #dc3545;
-      color: white;
-    }
-    
-    .btn-danger:hover {
-      background-color: #c82333;
-    }
-    
-    /* Styles pour la table */
-    .table-wrap {
-      overflow-x: auto;
-    }
-    
-    .projects-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    
-    .projects-table th,
-    .projects-table td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .projects-table th {
-      background-color: #f8f9fa;
-      font-weight: 600;
-      color: #333;
-    }
-    
-    .projects-table tr:hover {
-      background-color: #f8f9fa;
-    }
-    
-    .center-col {
-      text-align: center;
-    }
-    
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    
-    .badge.disponible {
-      background-color: #e6f4ea;
-      color: #137333;
-    }
-    
-    .badge.complet {
-      background-color: #fff8e6;
-      color: #b86000;
-    }
-    
-    .badge.termine {
-      background-color: #f0f0f0;
-      color: #666;
-    }
-    
-    /* Styles pour les cartes de statistiques */
-    .stats-overview {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .stat-card {
-      background-color: white;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-      text-align: center;
-    }
-    
-    .stat-card h4 {
-      margin: 0 0 10px 0;
-      font-size: 14px;
-      color: #666;
-      font-weight: 600;
-    }
-    
-    .stat-number {
-      margin: 0;
-      font-size: 32px;
-      font-weight: 700;
-      color: #333;
-    }
-    
-    /* Styles pour la sidebar et le layout principal */
-    .admin-wrapper {
-      display: flex;
-      min-height: 100vh;
-    }
-    
-    .sidebar {
-      width: 250px;
-      background-color: #2c3e50;
-      color: white;
-    }
-    
-    .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid #34495e;
-    }
-    
-    .sidebar-header h2 {
-      margin: 0;
-      font-size: 20px;
-    }
-    
-    .sidebar-nav ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    .sidebar-nav li {
-      border-bottom: 1px solid #34495e;
-    }
-    
-    .sidebar-nav a {
-      display: flex;
-      align-items: center;
-      padding: 15px 20px;
-      color: #bdc3c7;
-      text-decoration: none;
-      transition: all 0.3s ease;
-    }
-    
-    .sidebar-nav a:hover,
-    .sidebar-nav a.active {
-      background-color: #34495e;
-      color: white;
-    }
-    
-    .sidebar-nav i {
-      margin-right: 10px;
-      width: 20px;
-      text-align: center;
-    }
-    
-    .main-content {
-      flex: 1;
-      background-color: #f5f7fa;
-    }
-    
-    .topbar {
-      background-color: white;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-    
-    .header-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .title {
-      margin: 0;
-      color: #333;
-    }
-    
-    .add-btn {
-      background-color: #4a6cf7;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      font-family: 'Poppins', sans-serif;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .add-btn:hover {
-      background-color: #3a5ce5;
-    }
-    
-    .container {
-      padding: 20px;
-    }
-    
-    .card {
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-      overflow: hidden;
-    }
-    
-    .card-header {
-      padding: 20px;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .card-header h3 {
-      margin: 0;
-      color: #333;
-    }
 
-    .alert {
-      padding: 12px 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-
-    .alert-success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .alert-error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .no-associations {
-      background-color: #fff3cd;
-      border: 1px solid #ffeaa7;
-      color: #856404;
-      padding: 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-  </style>
 </head>
 <body>
   <div class="admin-wrapper">
@@ -545,8 +183,10 @@ $projetsSupprimes = 0;
                       echo "<td class='center-col'><span class='badge $badgeClass'>$badgeText</span></td>";
                       echo "<td class='center-col'>" . $participantsCount . "</td>";
                       echo "<td class='center-col'>";
-                     echo "<a href='updateprojet.php?id=" . $project['id_projet'] . "' class='btn btn-warning'><i class='fas fa-edit'></i> Modifier</a>";
-                      echo "<a href='?supprimer=" . $project['id_projet'] . "' class='btn btn-danger' onclick='return confirm(\"Êtes-vous sûr de vouloir supprimer ce projet?\")'><i class='fas fa-trash-alt'></i> Supprimer</a>";
+                      echo "<div class='action-buttons'>";
+                      echo "<a href='updateprojet.php?id=" . $project['id_projet'] . "' class='btn btn-warning'><i class='fas fa-edit'></i> Modifier</a>";
+                      echo "<button class='btn btn-danger delete-btn' data-project-id='" . $project['id_projet'] . "' data-project-name='" . htmlspecialchars($project['titre']) . "'><i class='fas fa-trash-alt'></i> Supprimer</button>";
+                      echo "</div>";
                       echo "</td>";
                       echo "</tr>";
                   }
@@ -659,6 +299,22 @@ $projetsSupprimes = 0;
     </div>
   </div>
 
+  <!-- Modal de confirmation de suppression -->
+  <div class="confirmation-modal" id="confirmationModal">
+    <div class="confirmation-content">
+      <div class="confirmation-header">
+        <h3>Confirmation de suppression</h3>
+      </div>
+      <div class="confirmation-body">
+        <p id="confirmationMessage">Êtes-vous sûr de vouloir supprimer ce projet ?</p>
+      </div>
+      <div class="confirmation-footer">
+        <button class="confirmation-btn confirmation-btn-cancel" id="cancelDeleteBtn">Annuler</button>
+        <a href="#" class="confirmation-btn confirmation-btn-delete" id="confirmDeleteBtn">Oui, supprimer</a>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Gestion du modal d'ajout de projet
     document.addEventListener('DOMContentLoaded', function() {
@@ -667,12 +323,18 @@ $projetsSupprimes = 0;
       const closeBtn = document.getElementById('closeModal');
       const cancelBtn = document.getElementById('cancelBtn');
       
-      // Ouvrir le modal
+      // Modal de confirmation
+      const confirmationModal = document.getElementById('confirmationModal');
+      const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+      const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+      const confirmationMessage = document.getElementById('confirmationMessage');
+      
+      // Ouvrir le modal d'ajout
       addBtn.addEventListener('click', function() {
         modal.style.display = 'flex';
       });
       
-      // Fermer le modal
+      // Fermer le modal d'ajout
       function closeModal() {
         modal.style.display = 'none';
       }
@@ -680,7 +342,7 @@ $projetsSupprimes = 0;
       closeBtn.addEventListener('click', closeModal);
       cancelBtn.addEventListener('click', closeModal);
       
-      // Fermer le modal en cliquant à l'extérieur
+      // Fermer le modal d'ajout en cliquant à l'extérieur
       modal.addEventListener('click', function(e) {
         if (e.target === modal) {
           closeModal();
@@ -693,6 +355,43 @@ $projetsSupprimes = 0;
           e.preventDefault();
           alert('Aucune association disponible. Créez d\'abord des associations dans la base de données.');
         <?php endif; ?>
+      });
+
+      // Gestion des boutons de suppression
+      document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const projectId = this.getAttribute('data-project-id');
+          const projectName = this.getAttribute('data-project-name');
+          
+          // Mettre à jour le message de confirmation
+          confirmationMessage.textContent = `Êtes-vous sûr de vouloir supprimer le projet "${projectName}" ? Cette action est irréversible.`;
+          
+          // Mettre à jour le lien de confirmation
+          confirmDeleteBtn.href = `?supprimer=${projectId}&confirm=oui`;
+          
+          // Afficher le modal de confirmation
+          confirmationModal.style.display = 'flex';
+        });
+      });
+
+      // Fermer le modal de confirmation
+      function closeConfirmationModal() {
+        confirmationModal.style.display = 'none';
+      }
+
+      cancelDeleteBtn.addEventListener('click', closeConfirmationModal);
+      
+      // Fermer le modal de confirmation en cliquant à l'extérieur
+      confirmationModal.addEventListener('click', function(e) {
+        if (e.target === confirmationModal) {
+          closeConfirmationModal();
+        }
+      });
+
+      // Confirmer la suppression (le lien fait déjà l'action)
+      confirmDeleteBtn.addEventListener('click', function() {
+        closeConfirmationModal();
       });
     });
   </script>
