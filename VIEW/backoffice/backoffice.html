@@ -1,0 +1,277 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/boxicons@latest/css/boxicons.min.css"
+    />
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../style/dashbord.css">
+
+    <title>Dashboard Admin - GamerLink</title>
+
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-img">
+                    <img src="../media/logo.jpg" alt="GamerLink Logo" onerror="this.style.display='none'; this.parentNode.innerHTML='GL'; this.parentNode.style.background='linear-gradient(45deg, var(--primary), var(--accent))'; this.parentNode.style.color='white'; this.parentNode.style.alignItems='center'; this.parentNode.style.justifyContent='center';">
+                </div>
+                <div class="sidebar-title">GamerLink Admin</div>
+            </div>
+            <div class="sidebar-menu">
+                <a href="#" class="menu-item active">
+                    <i class="ri-dashboard-line menu-icon"></i>
+                    <span class="menu-text">Tableau de bord</span>
+                </a>
+                <a href="../backOffice/manage-user.html" class="menu-item">
+                    <i class="ri-user-line menu-icon"></i>
+                    <span class="menu-text">User</span>
+                    <span class="menu-badge">12</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-shopping-cart-line menu-icon"></i>
+                    <span class="menu-text">Shop</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-chat-3-line menu-icon"></i>
+                    <span class="menu-text">Forum</span>
+                    <span class="menu-badge">3</span>
+                </a>
+                <a href="listerprojet.php" class="menu-item">
+                    <i class="ri-calendar-event-line menu-icon"></i>
+                    <span class="menu-text">Events</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-question-line menu-icon"></i>
+                    <span class="menu-text">Quiz</span>
+                    <span class="menu-badge">5</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-file-warning-line menu-icon"></i>
+                    <span class="menu-text">Reclamations</span>
+                    <span class="menu-badge">8</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-bar-chart-line menu-icon"></i>
+                    <span class="menu-text">Analytics</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="ri-settings-3-line menu-icon"></i>
+                    <span class="menu-text">Paramètres</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <button class="toggle-sidebar">
+                        <i class="ri-menu-line"></i>
+                    </button>
+                    <h1 class="header-title">Tableau de bord</h1>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <input type="text" placeholder="Rechercher...">
+                        <i class="ri-search-line search-icon"></i>
+                    </div>
+                    <div class="user-menu">
+                        <div class="user-avatar">AD</div>
+                        <div class="user-info">
+                            <div class="user-name">Admin GamerLink</div>
+                            <div class="user-role">Administrateur</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon users">
+                            <i class="ri-user-line"></i>
+                        </div>
+                        <div class="stat-value">12,458</div>
+                        <div class="stat-label">Utilisateurs actifs</div>
+                        <div class="stat-change positive">
+                            <i class="ri-arrow-up-line"></i>
+                            <span>12% ce mois</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon revenue">
+                            <i class="ri-money-dollar-circle-line"></i>
+                        </div>
+                        <div class="stat-value">€45,289</div>
+                        <div class="stat-label">Revenus totaux</div>
+                        <div class="stat-change positive">
+                            <i class="ri-arrow-up-line"></i>
+                            <span>8% ce mois</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon games">
+                            <i class="ri-gamepad-line"></i>
+                        </div>
+                        <div class="stat-value">347</div>
+                        <div class="stat-label">Jeux disponibles</div>
+                        <div class="stat-change positive">
+                            <i class="ri-arrow-up-line"></i>
+                            <span>5% ce mois</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon support">
+                            <i class="ri-customer-service-2-line"></i>
+                        </div>
+                        <div class="stat-value">23</div>
+                        <div class="stat-label">Tickets ouverts</div>
+                        <div class="stat-change negative">
+                            <i class="ri-arrow-down-line"></i>
+                            <span>3% ce mois</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-section">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Activité des utilisateurs</h3>
+                            <div class="chart-actions">
+                                <button class="chart-btn">Mois</button>
+                                <button class="chart-btn active">Semaine</button>
+                                <button class="chart-btn">Jour</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <!-- Chart would be implemented with a library like Chart.js -->
+                            <div style="display: flex; align-items: end; height: 100%; gap: 10px; padding: 20px 0;">
+                                <div style="flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary)); height: 80%; border-radius: 5px;"></div>
+                                <div style="flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary)); height: 60%; border-radius: 5px;"></div>
+                                <div style="flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary)); height: 90%; border-radius: 5px;"></div>
+                                <div style="flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary)); height: 70%; border-radius: 5px;"></div>
+                                <div style="flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary)); height: 85%; border-radius: 5px;"></div>
+                                <div style="flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary)); height: 50%; border-radius: 5px;"></div>
+                                <div style="flex: 1; background: linear-gradient(to top, var(--primary), var(--secondary)); height: 75%; border-radius: 5px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Répartition des revenus</h3>
+                        </div>
+                        <div class="chart-container">
+                            <!-- Pie chart placeholder -->
+                            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+                                <div style="width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(var(--primary) 0% 40%, var(--secondary) 40% 70%, var(--accent) 70% 100%);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Réclamations Section -->
+                <div class="reclamations-section">
+                    <div class="reclamations-header">
+                        <h3 class="chart-title">Liste des Réclamations</h3>
+                        <div class="reclamations-actions">
+                            <button class="filter-btn active">Toutes</button>
+                            <button class="filter-btn">En attente</button>
+                            <button class="filter-btn">En cours</button>
+                            <button class="filter-btn">Résolues</button>
+                        </div>
+                    </div>
+                    <table class="reclamations-table">
+                        <tr>
+                            <th>ID</th>
+                            <th>Utilisateur</th>
+                            <th>Catégorie</th>
+                            <th>Description</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                        <tr class="reclamation-item">
+                            <td>#4582</td>
+                            <td>aziz laajimi</td>
+                            <td>Jeux achetés</td>
+                            <td>Problème de téléchargement</td>
+                            <td>12/11/2025</td>
+                            <td><span class="status-badge status-pending">En attente</span></td>
+                            <td>
+                                <button class="action-btn"><i class="ri-eye-line"></i></button>
+                                <button class="action-btn"><i class="ri-edit-line"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="reclamation-item">
+                            <td>#4581</td>
+                            <td>firas jebri </td>
+                            <td>Dysfonctionnement</td>
+                            <td>Page de paiement ne fonctionne pas</td>
+                            <td>10/11/2025</td>
+                            <td><span class="status-badge status-in-progress">En cours</span></td>
+                            <td>
+                                <button class="action-btn"><i class="ri-eye-line"></i></button>
+                                <button class="action-btn"><i class="ri-edit-line"></i></button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <a href="#" class="action-card">
+                        <div class="action-icon">
+                            <i class="ri-user-add-line"></i>
+                        </div>
+                        <div class="action-text">Ajouter un utilisateur</div>
+                    </a>
+                    <a href="#" class="action-card">
+                        <div class="action-icon">
+                            <i class="ri-gamepad-line"></i>
+                        </div>
+                        <div class="action-text">Gérer les jeux</div>
+                    </a>
+                    <a href="#" class="action-card">
+                        <div class="action-icon">
+                            <i class="ri-file-warning-line"></i>
+                        </div>
+                        <div class="action-text">Voir les réclamations</div>
+                    </a>
+                    <a href="#" class="action-card">
+                        <div class="action-icon">
+                            <i class="ri-settings-3-line"></i>
+                        </div>
+                        <div class="action-text">Paramètres</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../script/dashbord.js"></script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Détails du Projet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="../style/details.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-logo">
+            <span class="logo">We<span>Connect</span></span>
+        </div>
+        <div class="nav-menu">
+            <a href="../index.html" class="nav-link">Accueil</a>
+            <a href="categorie.html" class="nav-link">Catégories</a>
+            <a href="projects.html" class="nav-link">Projets</a>
+            <a href="#contact" class="nav-link">Contact</a>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-login">Connexion</button>
+            <button class="btn-primary">S'inscrire</button>
+        </div>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Header -->
+<header class="hero-header">
+    <div class="hero-container">
+        <h1 class="fade-in">Détails du Projet</h1>
+        <p class="fade-in">Découvrez toutes les informations et participez</p>
+    </div>
+</header>
+
+<!-- Project Details -->
+<div class="project-details-container fade-in" id="projectContainer">
+  <!-- Contenu généré par JS -->
+</div>
+
+<!-- Task Selection Modal -->
+<div class="modal" id="taskModal">
+  <div class="modal-content task-modal-content">
+    <button class="close-btn" id="closeTaskModal">✕</button>
+    <h3>Choisissez vos tâches</h3>
+    <p class="modal-subtitle">Sélectionnez les tâches que vous souhaitez accomplir dans ce projet</p>
+    
+    <div class="tasks-list" id="tasksList">
+      <!-- Les tâches seront générées dynamiquement -->
+    </div>
+    
+    <div class="selected-tasks-summary">
+      <h4>Tâches sélectionnées :</h4>
+      <div class="selected-tasks" id="selectedTasks">
+        <p class="no-tasks">Aucune tâche sélectionnée</p>
+      </div>
+    </div>
+    
+    <div class="task-modal-actions">
+      <button class="btn-secondary" id="cancelTaskSelection">Annuler</button>
+      <button class="btn-primary" id="confirmParticipation" disabled>
+        Confirmer la participation
+        <i class="fas fa-check"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Participation Success Modal -->
+<div class="modal" id="successModal">
+  <div class="modal-content success-modal-content">
+    <div class="success-icon">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <h3>Participation confirmée !</h3>
+    <p>Votre participation au projet a été enregistrée avec succès.</p>
+    <div class="success-details" id="successDetails">
+      <!-- Détails de la participation -->
+    </div>
+    <button class="btn-primary" id="closeSuccessModal">
+      Fermer
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer" id="contact">
+    <div class="footer-container">
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <span class="logo">We<span>Connect</span></span>
+                </div>
+                <p>Plateforme de volontariat qui connecte les passionnés avec des projets qui changent le monde.</p>
+                <div class="social-links">
+                    <a href="https://www.facebook.com" target="_blank" class="social-link">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="https://www.instagram.com" target="_blank" class="social-link">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="https://www.tiktok.com" target="_blank" class="social-link">
+                        <i class="fab fa-tiktok"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h4>Navigation</h4>
+                <ul>
+                    <li><a href="../index.html">Accueil</a></li>
+                    <li><a href="categorie.html">Catégories</a></li>
+                    <li><a href="projects.html">Projets</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Catégories</h4>
+                <ul>
+                    <li><a href="projects.html?category=solidarite">Solidarité</a></li>
+                    <li><a href="projects.html?category=environnement">Environnement</a></li>
+                    <li><a href="projects.html?category=education">Éducation</a></li>
+                    <li><a href="projects.html?category=sante">Santé</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <ul>
+                    <li><i class="fas fa-envelope"></i> contact@weconnect.tn</li>
+                    <li><i class="fas fa-phone"></i> +216 12 345 678</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Tunis, Tunisia</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 WeConnect. Tous droits réservés.</p>
+            <div class="footer-links">
+                <a href="#">Politique de confidentialité</a>
+                <a href="#">Conditions d'utilisation</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Chat Modal -->
+<div class="modal" id="chatModal">
+  <div class="modal-content">
+    <button class="close-btn" id="closeChat">✕</button>
+    <h3>Chat Participants</h3>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Écrire un message...">
+      <button id="sendMsg">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<script src="../script/details.js"></script>
+</body>
+</html>
