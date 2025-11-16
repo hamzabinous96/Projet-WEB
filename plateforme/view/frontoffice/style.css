@@ -1,0 +1,353 @@
+:root {
+    --pistachio: #93C572;
+    --pistachio-light: #B8D8A6;
+    --pistachio-dark: #7AA959;
+    --pistachio-soft: #E8F4E0;
+    --pistachio-transparent: rgba(147, 197, 114, 0.1);
+    --dark: #1A1A1A;
+    --gray-dark: #333333;
+    --gray: #666666;
+    --gray-light: #F8F9FA;
+    --white: #FFFFFF;
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 20px 60px rgba(147, 197, 114, 0.15);
+}
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--white);
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+/* --------------------------
+   HEADER & NAVBAR
+-------------------------- */
+.header-bg {
+    background: linear-gradient(rgba(147,197,114,0.8), rgba(122,169,89,0.8)), url('https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+    background-size: cover;
+    background-position: center;
+    color: var(--white);
+    padding: 100px 0 70px;
+    position: relative;
+}
+
+.header-bg::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to bottom, transparent, var(--white));
+}
+
+.navbar {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 15px 0;
+    transition: all 0.3s;
+}
+
+.navbar-scrolled {
+    padding: 10px 0;
+    background-color: var(--white) !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--pistachio) !important;
+    display: flex;
+    align-items: center;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: color 0.3s;
+    margin: 0 8px;
+    position: relative;
+    color: var(--gray-dark);
+}
+
+.navbar-nav .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--pistachio);
+    transition: width 0.3s;
+}
+
+.navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link.active::after {
+    width: 100%;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--pistachio) !important;
+}
+
+.btn-primary {
+    background-color: var(--pistachio);
+    border-color: var(--pistachio);
+    font-weight: 500;
+    padding: 10px 25px;
+    border-radius: 8px;
+    color: var(--white);
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: var(--pistachio-dark);
+    border-color: var(--pistachio-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-outline-primary {
+    color: var(--pistachio);
+    border-color: var(--pistachio);
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--pistachio);
+    border-color: var(--pistachio);
+    color: var(--white);
+    transform: translateY(-2px);
+}
+
+/* --------------------------
+   HERO SECTION
+-------------------------- */
+.hero {
+    padding: 160px 0 100px;
+    background: linear-gradient(135deg, var(--pistachio-soft) 0%, transparent 50%, var(--white) 100%);
+    position: relative;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.hero-title .highlight {
+    color: var(--pistachio);
+    position: relative;
+}
+
+.hero-title .highlight::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: var(--pistachio-soft);
+    z-index: -1;
+}
+
+.hero-description {
+    font-size: 1.2rem;
+    color: var(--gray-dark);
+    margin-bottom: 40px;
+}
+
+/* --------------------------
+   BLOG CARDS
+-------------------------- */
+.blog-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s, box-shadow 0.3s;
+    background: var(--white);
+}
+
+.blog-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-hover);
+}
+
+.blog-card img {
+    height: 220px;
+    object-fit: cover;
+    width: 100%;
+    transition: transform 0.5s;
+}
+
+.blog-card:hover img {
+    transform: scale(1.05);
+}
+
+.category-badge {
+    background-color: var(--pistachio);
+    color: var(--white);
+}
+
+/* --------------------------
+   SIDEBAR
+-------------------------- */
+.sidebar-widget {
+    background-color: var(--white);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--pistachio-soft);
+}
+
+.sidebar-widget h4 {
+    color: var(--pistachio);
+    border-bottom: 2px solid var(--pistachio);
+}
+
+.recent-post-content h5 {
+    color: var(--dark);
+}
+
+.recent-post-content p {
+    color: var(--gray);
+}
+.bg-light {
+    --bs-bg-opacity: 1;
+    background-color: #93c572 !important;
+}
+
+/* --------------------------
+   FOOTER
+-------------------------- */
+footer {
+    background: var(--dark);
+    color: var(--white);
+    padding: 60px 0 20px;
+}
+
+.footer-links a {
+    color: var(--gray);
+    transition: color 0.3s;
+}
+
+.footer-links a:hover {
+    color: var(--pistachio-light);
+}
+
+.social-icons a {
+    background-color: rgba(255,255,255,0.1);
+    color: var(--white);
+}
+
+.social-icons a:hover {
+    background-color: var(--pistachio);
+}
+
+/* --------------------------
+   BUTTONS & CTA
+-------------------------- */
+.cta {
+    background: linear-gradient(135deg, var(--pistachio), var(--pistachio-dark));
+    color: var(--white);
+    text-align: center;
+}
+
+.cta .btn-primary {
+    background: var(--white);
+    color: var(--pistachio);
+}
+
+.cta .btn-secondary {
+    border-color: var(--white);
+    color: var(--white);
+}
+
+.cta .btn-secondary:hover {
+    background: var(--white);
+    color: var(--pistachio);
+}
+/* --------------------------
+   HERO SECTION - Background amélioré
+-/* --------------------------
+   HERO SECTION - Image personnalisée
+-------------------------- */
+.hero {
+    padding: 160px 0 100px;
+    background: linear-gradient(135deg, var(--pistachio-soft) 0%, rgba(147,197,114,0.3) 50%, var(--white) 100%),
+                url('/mnt/data/6dfff281-820f-4591-8509-06d4abb9cbeb.png');
+    background-size: cover;
+    background-position: center;
+    background-blend-mode: overlay;
+    position: relative;
+    overflow: hidden;
+    color: var(--white);
+}
+
+/* --------------------------
+   HERO TITLE & BADGE
+-------------------------- */
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--white);
+}
+
+.hero-title .highlight {
+    color: var(--pistachio-light);
+}
+
+/* --------------------------
+   FOOTER - nouvelle couleur
+-------------------------- */
+footer {
+    background: linear-gradient(135deg, var(--pistachio-dark) 0%, var(--pistachio) 100%);
+    color: var(--white);
+    padding: 60px 0 20px;
+}
+
+.footer-section h4 {
+    color: var(--white);
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-links a:hover {
+    color: var(--pistachio-light);
+}
+
+.social-icons a {
+    background-color: rgba(255,255,255,0.2);
+    color: var(--white);
+}
+
+.social-icons a:hover {
+    background-color: var(--pistachio-light);
+    color: var(--dark);
+}
+:root {
+    --pistachio: #93C572;       /* Couleur principale vert pistache */
+    --pistachio-light: #B8D8A6; /* Variante plus claire */
+}
+
+.blog-header {
+    background-color: var(--pistachio) !important; /* important pour écraser Bootstrap */
+    color: white;             /* Texte blanc pour contraste */
+}

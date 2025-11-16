@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog de solidarité - WeConnect</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Bouton admin flottant */
+        .admin-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #93C572 0%, #7AA959 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 10px 40px rgba(147, 197, 114, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            border: none;
+            text-decoration: none;
+        }
+
+        .admin-fab:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 20px 60px rgba(147, 197, 114, 0.6);
+            background: linear-gradient(135deg, #7AA959 0%, #93C572 100%);
+        }
+
+        .admin-fab i {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        /* Badge admin dans la navbar (optionnel) */
+        .admin-badge-nav {
+            background: linear-gradient(135deg, #93C572 0%, #7AA959 100%);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-badge-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(147, 197, 114, 0.4);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-hands-helping me-1"></i>WeConnect</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link active" href="#">Accueil</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Projets</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Forum</a></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="blog.html" data-bs-toggle="dropdown">Blog</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Solidarité</a></li>
+                        <li><a class="dropdown-item" href="#">Éducation</a></li>
+                        <li><a class="dropdown-item" href="#">Environnement</a></li>
+                        <li><a class="dropdown-item" href="#">Innovation Sociale</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#">Tous les articles</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="#">Événements</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+            </ul>
+            <div class="ms-lg-3 mt-3 mt-lg-0 d-flex gap-2">
+                <button class="btn btn-primary" id="joinBtn">Rejoindre notre communauté</button>
+                <!-- Bouton Admin dans la navbar (optionnel) -->
+                <a href="http://localhost/categorie/plateforme/view/backoffice/back.php" class="admin-badge-nav">
+    <i class="fas fa-shield-alt"></i>
+    Admin
+</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Bouton Admin Flottant -->
+<a href="back.php" class="admin-fab" title="Accéder à l'administration">
+    <i class="fas fa-cog"></i>
+</a>
+
+<!-- Header -->
+<header class="mt-5 pt-5 text-center bg-light py-5">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-3">Blog de solidarité</h1>
+        <p class="lead mb-0">Découvrez les initiatives de paix et d'inclusion de notre communauté 🌍</p>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main class="py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Articles -->
+            <div class="col-lg-8">
+                <div class="row g-4">
+                    <!-- Article 1 -->
+                    <div class="col-md-6">
+                        <div class="blog-card border rounded shadow-sm">
+                            <img src="assect/HA.jpg" alt="Nettoyage des plages" class="img-fluid rounded-top">
+                            <div class="p-3">
+                                <span class="badge bg-primary mb-2">Bénévolat🫶</span>
+                                <h4 class="mb-2">Comment les plateformes en ligne transforment la solidarité</h4>
+                                <small class="text-muted">10 nov. 2025</small>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div>
+                                        <span><i class="far fa-comment"></i> 5</span>
+                                        <span class="ms-2"><i class="far fa-heart"></i> 24</span>
+                                    </div>
+                                    <a href="article.html?id=1" class="btn btn-primary btn-sm">Lire la suite</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Article 2 -->
+                    <div class="col-md-6">
+                        <div class="blog-card border rounded shadow-sm">
+                            <img src="assect/j.jpg" alt="Cours de soutien scolaire" class="img-fluid rounded-top">
+                            <div class="p-3">
+                                <span class="badge bg-success mb-2">Témoignages Inspirants</span>
+                                <h4 class="mb-2">Le Jardin Partagé de Sophie</h4>
+                                <small class="text-muted">5 nov. 2025</small>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div>
+                                        <span><i class="far fa-comment"></i> 12</span>
+                                        <span class="ms-2"><i class="far fa-heart"></i> 45</span>
+                                    </div>
+                                    <a href="article.html?id=2" class="btn btn-primary btn-sm">Lire la suite</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Article 3 -->
+                    <div class="col-md-6">
+                        <div class="blog-card border rounded shadow-sm">
+                            <img src="assect/download.png" alt="Distribution alimentaire" class="img-fluid rounded-top">
+                            <div class="p-3">
+                                <span class="badge bg-warning mb-2">Santé mentale</span>
+                                <h4 class="mb-2">Psychiatrie de Rue : Rencontrer les Patients là où Ils Sont</h4>
+                                <small class="text-muted">2 nov. 2025</small>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div>
+                                        <span><i class="far fa-comment"></i> 8</span>
+                                        <span class="ms-2"><i class="far fa-heart"></i> 32</span>
+                                    </div>
+                                    <a href="article.html?id=3" class="btn btn-primary btn-sm">Lire la suite</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Article 4 -->
+                    <div class="col-md-6">
+                        <div class="blog-card border rounded shadow-sm">
+                            <img src="assect/d.jpg" alt="Atelier d'inclusion numérique" class="img-fluid rounded-top">
+                            <div class="p-3">
+                                <span class="badge bg-info text-dark mb-2">Éducation</span>
+                                <h4 class="mb-2">Éducation Solidaire : Réinventer l'École avec les Citoyens</h4>
+                                <small class="text-muted">28 oct. 2025</small>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div>
+                                        <span><i class="far fa-comment"></i> 15</span>
+                                        <span class="ms-2"><i class="far fa-heart"></i> 67</span>
+                                    </div>
+                                    <a href="article.html?id=4" class="btn btn-primary btn-sm">Lire la suite</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Article 5 -->
+                    <div class="col-md-6">
+                        <div class="blog-card border rounded shadow-sm">
+                            <img src="assect/iji.jpg" alt="Atelier de peinture solidaire" class="img-fluid rounded-top">
+                            <div class="p-3">
+                                <span class="badge bg-secondary mb-2">Culture</span>
+                                <h4 class="mb-2">Atelier de peinture solidaire pour enfants</h4>
+                                <small class="text-muted">12 nov. 2025</small>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div>
+                                        <span><i class="far fa-comment"></i> 7</span>
+                                        <span class="ms-2"><i class="far fa-heart"></i> 18</span>
+                                    </div>
+                                    <a href="article.html?id=5" class="btn btn-primary btn-sm">Lire la suite</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Article 6 -->
+                    <div class="col-md-6">
+                        <div class="blog-card border rounded shadow-sm">
+                            <img src="assect/li.jpg" alt="Collecte de jouets" class="img-fluid rounded-top">
+                            <div class="p-3">
+                                <span class="badge bg-danger mb-2">Bénévolat</span>
+                                <h4 class="mb-2">Collecte de jouets pour enfants défavorisés</h4>
+                                <small class="text-muted">14 nov. 2025</small>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div>
+                                        <span><i class="far fa-comment"></i> 10</span>
+                                        <span class="ms-2"><i class="far fa-heart"></i> 30</span>
+                                    </div>
+                                    <a href="article.html?id=6" class="btn btn-primary btn-sm">Lire la suite</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- À propos -->
+                <div class="sidebar-widget mb-4 p-3 border rounded shadow-sm">
+                    <h4>À propos de WeConnect</h4>
+                    <p>WeConnect met en relation bénévoles et associations pour créer un impact positif.</p>
+                    <button class="btn btn-outline-primary w-100" id="sidebarJoinBtn">Rejoindre notre communauté</button>
+                </div>
+
+                <!-- Articles récents -->
+                <div class="sidebar-widget mb-4 p-3 border rounded shadow-sm">
+                    <h4>Articles récents</h4>
+                    <div class="recent-post d-flex mb-3">
+                        <img src="assect/HA.jpg" alt="Nettoyage des plages" class="me-2 img-fluid" style="width:60px;">
+                        <div>
+                            <h5 class="mb-0">Comment les plateformes en ligne transforment la solidarité</h5>
+                            <small>10 nov. 2025</small>
+                        </div>
+                    </div>
+                    <div class="recent-post d-flex mb-3">
+                        <img src="assect/j.jpg" alt="Cours de soutien scolaire" class="me-2 img-fluid" style="width:60px;">
+                        <div>
+                            <h5 class="mb-0">Le Jardin Partagé de Sophie</h5>
+                            <small>5 nov. 2025</small>
+                        </div>
+                    </div>
+                    <div class="recent-post d-flex mb-3">
+                        <img src="assect/download.png" alt="Distribution alimentaire" class="me-2 img-fluid" style="width:60px;">
+                        <div>
+                            <h5 class="mb-0">Psychiatrie de Rue</h5>
+                            <small>2 nov. 2025</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Catégories -->
+                <div class="sidebar-widget mb-4 p-3 border rounded shadow-sm">
+                    <h4>Catégories</h4>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="tag btn btn-light btn-sm">Solidarité</span>
+                        <span class="tag btn btn-light btn-sm">Environnement</span>
+                        <span class="tag btn btn-light btn-sm">Éducation</span>
+                        <span class="tag btn btn-light btn-sm">Inclusion</span>
+                        <span class="tag btn btn-light btn-sm">Santé</span>
+                        <span class="tag btn btn-light btn-sm">Culture</span>
+                    </div>
+                </div>
+
+                <!-- Événements -->
+                <div class="sidebar-widget mb-4 p-3 border rounded shadow-sm">
+                    <h4>Événements à venir</h4>
+                    <div class="mb-3 border-bottom pb-2">
+                        <h5 class="mb-1">Collecte de vêtements d'hiver</h5>
+                        <small><i class="far fa-calendar me-1"></i>15 janvier 2025</small><br>
+                        <small><i class="fas fa-map-marker-alt me-1"></i>Centre communautaire WeConnect</small>
+                    </div>
+                    <div class="mb-3 border-bottom pb-2">
+                        <h5 class="mb-1">Atelier jardinage urbain</h5>
+                        <small><i class="far fa-calendar me-1"></i>22 novembre 2025</small><br>
+                        <small><i class="fas fa-map-marker-alt me-1"></i>Jardin partagé du quartier</small>
+                    </div>
+                    <div>
+                        <h5 class="mb-1">Forum de l'emploi solidaire</h5>
+                        <small><i class="far fa-calendar me-1"></i>5 décembre 2025</small><br>
+                        <small><i class="fas fa-map-marker-alt me-1"></i>Espace WeConnect</small>
+                    </div>
+                </div>
+
+                <!-- Newsletter -->
+                <div class="sidebar-widget p-3 border rounded shadow-sm">
+                    <h4>Restez informé</h4>
+                    <div class="input-group">
+                        <input type="email" class="form-control" placeholder="Votre email" id="newsletterEmail">
+                        <button class="btn btn-primary" id="subscribeBtn">S'abonner</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="bg-dark text-white pt-5 pb-3">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <h5><i class="fas fa-hands-helping me-2"></i>WeConnect</h5>
+                <p>Plateforme de solidarité mettant en relation bénévoles et associations pour un impact positif.</p>
+            </div>
+            <div class="col-lg-2 col-md-6 mb-3">
+                <h5>Liens rapides</h5>
+                <ul class="list-unstyled">
+                    <li><a href="#" class="text-white text-decoration-none">Accueil</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Projets</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Forum</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Blog</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Événements</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Contact</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <h5>Catégories</h5>
+                <ul class="list-unstyled">
+                    <li><a href="#" class="text-white text-decoration-none">Solidarité</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Éducation</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Environnement</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Inclusion</a></li>
+                    <li><a href="#" class="text-white text-decoration-none">Santé</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <h5>Contact</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-map-marker-alt me-1"></i>123 Rue de la Solidarité, Tunis</li>
+                    <li><i class="fas fa-phone me-1"></i>+216 12 345 678</li>
+                    <li><i class="fas fa-envelope me-1"></i>contact@weconnect.tn</li>
+                    <li><i class="fas fa-clock me-1"></i>Lun - Ven: 9h - 18h</li>
+                </ul>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            &copy; 2025 WeConnect. Tous droits réservés.
+        </div>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Script bouton -->
+<script>
+document.getElementById('joinBtn').addEventListener('click', ()=>window.location.href='inscription.html');
+document.getElementById('sidebarJoinBtn').addEventListener('click', ()=>window.location.href='inscription.html');
+document.getElementById('subscribeBtn').addEventListener('click', ()=>{
+    const email = document.getElementById('newsletterEmail').value;
+    if(email) alert(`Merci ! Vous êtes maintenant abonné avec l'email: ${email}`);
+});
+
+// Debug: vérifier que les liens fonctionnent
+document.addEventListener('DOMContentLoaded', function() {
+    const links = document.querySelectorAll('a[href*="article.html"]');
+    console.log('Liens "Lire la suite" trouvés:', links.length);
+});
+</script>
+
+</body>
+</html>
