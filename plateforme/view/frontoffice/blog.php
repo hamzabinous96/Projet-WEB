@@ -244,8 +244,8 @@ $badge_colors = [
                     ?>
                     <div class="col-md-6">
                         <div class="blog-card border rounded shadow-sm h-100">
-                            <?php if (!empty($article['image_blog'])): ?>
-                            <img src="<?= htmlspecialchars($article['image_blog']) ?>" alt="<?= htmlspecialchars($article['titre_blog']) ?>" class="img-fluid rounded-top">
+                            <?php if (strlen($article['image_blog'])): ?>
+                            <img src="assets/<?= htmlspecialchars($article['image_blog']) ?>" alt="<?= htmlspecialchars($article['titre_blog']) ?>" class="img-fluid rounded-top">
                             <?php else: ?>
                             <img src="https://via.placeholder.com/400x200?text=<?= urlencode($article['titre_blog']) ?>" alt="<?= htmlspecialchars($article['titre_blog']) ?>" class="img-fluid rounded-top">
                             <?php endif; ?>
@@ -284,7 +284,7 @@ $badge_colors = [
                     <?php foreach ($articles_recents as $recent): ?>
                     <div class="recent-post d-flex mb-3">
                         <?php if (!empty($recent['image_blog'])): ?>
-                        <img src="<?= htmlspecialchars($recent['image_blog']) ?>" alt="<?= htmlspecialchars($recent['titre_blog']) ?>" class="me-2 img-fluid" style="width:60px;">
+                        <img src="assets/<?= htmlspecialchars($recent['image_blog']) ?>" alt="<?= htmlspecialchars($recent['titre_blog']) ?>" class="me-2 img-fluid" style="width:60px;">
                         <?php else: ?>
                         <img src="https://via.placeholder.com/60?text=Blog" alt="<?= htmlspecialchars($recent['titre_blog']) ?>" class="me-2 img-fluid" style="width:60px;">
                         <?php endif; ?>

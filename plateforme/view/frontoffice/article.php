@@ -182,16 +182,16 @@ function dateEnFrancais($date) {
     <div class="row justify-content-center">
         <div class="col-lg-10 article-card p-0">
             
-            <!-- Image de l'article -->
-            <?php if (!empty($article['image_blog'])): ?>
-                <img src="<?= htmlspecialchars($article['image_blog']) ?>" 
-                     alt="<?= htmlspecialchars($article['titre_blog']) ?>" 
-                     class="article-image">
-            <?php else: ?>
-                <img src="https://via.placeholder.com/800x400?text=WeConnect+Blog" 
-                     alt="<?= htmlspecialchars($article['titre_blog']) ?>" 
-                     class="article-image">
-            <?php endif; ?>
+           <?php if (!empty($article['image_blog'])): ?>
+    <img src="assets/<?= htmlspecialchars($article['image_blog']) ?>" 
+         alt="<?= htmlspecialchars($article['titre_blog']) ?>" 
+         class="article-image">
+<?php else: ?>
+    <img src="https://via.placeholder.com/800x400?text=WeConnect+Blog" 
+         alt="<?= htmlspecialchars($article['titre_blog']) ?>" 
+         class="article-image">
+<?php endif; ?>
+
             
             <div class="p-5">
                 
@@ -225,7 +225,7 @@ function dateEnFrancais($date) {
 
                 <!-- Auteur -->
                 <div class="d-flex align-items-center mt-4 border-top pt-4">
-                    <img src="/categorie/plateforme/view/frontoffice/asset/halo.jpeg" 
+                    <img src="assets/halo.jpeg" 
                          alt="Équipe WeConnect" 
                          class="author-avatar me-3">
                     <div>

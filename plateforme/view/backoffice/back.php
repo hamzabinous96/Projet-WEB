@@ -36,7 +36,7 @@ $article_edit = [
     'id_blog'        => '',
     'titre_blog'     => '',
     'contenu_blog'   => '',
-    'categories'     => '',
+    'categorie_blog'     => '',
     'est_publie_blog'=> 1
 ];
 
@@ -52,7 +52,7 @@ if (isset($_GET['edit'])) {
             'id_blog'        => '',
             'titre_blog'     => '',
             'contenu_blog'   => '',
-            'categories'     => '',
+            'categorie_blog'     => '',
             'est_publie_blog'=> 1
         ];
     }
@@ -62,6 +62,18 @@ if (isset($_GET['edit'])) {
 // SAUVEGARDE (CREATE / UPDATE)
 // ===========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // -----------------------------
+    // GESTION IMAGE UPLOAD
+    // -----------------------------
+    $imageName = $article_edit['image_blog'] ?? null;
+
+    if (!empty($_FILES['image_blog']['name'])) {
+        $tmp = $_FILES['image_blog']['tmp_name'];
+        $name = time() . "_" . basename($_FILES['image_blog']['name']);
+        move_uploaded_file($tmp, "../frontoffice/assets/" . $name);
+        $imageName = $name;
+    }
+
     $id      = !empty($_POST['id_blog']) ? (int) $_POST['id_blog'] : null;
     $titre   = trim($_POST['titre_blog']);
     $contenu = trim($_POST['contenu_blog']);
@@ -75,7 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     contenu_blog = :c,
                     categorie_blog = :cat,
                     est_publie_blog = :p,
-                    date_modification_blog = NOW()
+                    date_modification_blog = NOW(),
+                    image_blog = :img
                 WHERE id_blog = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
@@ -83,18 +96,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':c'         => $contenu,
             ':cat'       => $cat,
             ':p'         => $publie,
-            ':id'        => $id
+            ':id'        => $id,
+            ':img'       => $imageName
         ]);
     } else {
         $sql = "INSERT INTO blogs
                 (titre_blog, contenu_blog, categorie_blog,
-                 date_creation_blog, est_publie_blog, cree_par_blog)
-                VALUES (:t, :c, :cat, NOW(), :p, :cree_par)";
+                 date_creation_blog, image_blog, est_publie_blog, cree_par_blog)
+                VALUES (:t, :c, :cat, NOW(), :img, :p, :cree_par)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':t'         => $titre,
             ':c'         => $contenu,
             ':cat'       => $cat,
+            ':img'       => $imageName,
             ':p'         => $publie,
             ':cree_par'  => $cree_par
         ]);
@@ -599,7 +614,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <i class="fas fa-plus-circle"></i> 
                 <?= $editing ? 'Modifier un article' : 'Nouvel article' ?>
             </h2>
-            <form method="post" action="back.php">
+            <form method="post" action="back.php" enctype="multipart/form-data">
                 <input type="hidden" name="id_blog" value="<?= htmlspecialchars($article_edit['id_blog']) ?>">
 
                 <div class="form-group">
@@ -634,6 +649,17 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <label for="publier">Publier immédiatement cet article</label>
                 </div>
 
+                <div class="form-group mb-3">
+                    <label>Image du blog</label>
+                    <input type="file" name="image_blog" accept="image/*" class="form-control">
+
+                    <?php if ($editing && !empty($article_edit['image_blog'])): ?>
+                        <img src="assets/<?= htmlspecialchars($article_edit['image_blog']) ?>" 
+                            style="max-width:150px; margin-top:10px; border-radius:6px;">
+                    <?php endif; ?>
+                </div>
+
+
                 <div class="button-group">
                     <button type="submit">
                         <i class="fas fa-save"></i> <?= $editing ? 'Mettre à jour' : 'Créer' ?>
@@ -662,6 +688,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <table>
                     <thead>
                         <tr>
+                            <th>Image</th>
                             <th>ID</th>
                             <th>Nom du blog</th>
                             <th>Catégorie</th>
@@ -673,6 +700,14 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <tbody>
                     <?php foreach ($articles as $a): ?>
                         <tr>
+                            <td>
+                                <?php if (!empty($a['image_blog'])): ?>
+                                    <img src="../frontoffice/assets/<?= htmlspecialchars($a['image_blog']) ?>" 
+                                        style="width:70px; border-radius:6px;">
+                                <?php else: ?>
+                                    —
+                                <?php endif; ?>
+                            </td>
                             <td><?= $a['id_blog'] ?></td>
                             <td><?= htmlspecialchars($a['titre_blog']) ?></td>
                             <td><?= htmlspecialchars($a['nom_categorie']) ?></td>
