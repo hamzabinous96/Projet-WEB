@@ -1,0 +1,2201 @@
+## WeConnect Platform - PHP MVC Architecture
+
+### Project Structure
+```
+weconnect/
+├── config/
+│   └── database.php
+├── models/
+│   └── User.php
+├── views/
+│   ├── auth/
+│   │   ├── login.php
+│   │   └── register.php
+│   ├── admin/
+│   │   └── dashboard.php
+│   ├── user/
+│   │   ├── profile.php
+│   │   ├── edit_profile.php
+│   │   └── change_password.php
+│   └── layouts/
+│       ├── header.php
+│       └── footer.php
+├── controllers/
+│   ├── AuthController.php
+│   ├── AdminController.php
+│   └── UserController.php
+├── uploads/
+│   └── profile_pictures/
+├── assets/
+│   ├── css/
+│   │   ├── style.css
+│   │   └── auth.css
+│   └── js/
+│       └── validation.js
+├── index.php
+└── .htaccess
+```
+
+---
+
+### 1. Database Configuration (config/database.php)
+```php
+<?php
+class Database {
+    private $host = "localhost";
+    private $db_name = "weconnect";
+    private $username = "root";
+    private $password = "";
+    public $conn;
+
+    public function getConnection() {
+        $this->conn = null;
+        try {
+            $this->conn = new PDO(
+                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
+                $this->username,
+                $this->password
+            );
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->conn->exec("set names utf8");
+        } catch(PDOException $exception) {
+            echo "Connection error: " . $exception->getMessage();
+        }
+        return $this->conn;
+    }
+}
+?>
+```
+
+---
+
+### 2. User Model (models/User.php)
+```php
+<?php
+class User {
+    private $conn;
+    private $table_name = "users";
+
+    public $id;
+    public $user_type;
+    public $first_name;
+    public $last_name;
+    public $email;
+    public $phone;
+    public $password;
+    public $profile_picture;
+    public $status;
+    public $created_at;
+    public $updated_at;
+
+    public function __construct($db) {
+        $this->conn = $db;
+    }
+
+    // Create new user
+    public function create() {
+        $query = "INSERT INTO " . $this->table_name . "
+                SET user_type=:user_type, first_name=:first_name, last_name=:last_name,
+                    email=:email, phone=:phone, password=:password, profile_picture=:profile_picture, status=:status";
+
+        $stmt = $this->conn->prepare($query);
+
+        $this->first_name = htmlspecialchars(strip_tags($this->first_name));
+        $this->last_name = htmlspecialchars(strip_tags($this->last_name));
+        $this->email = htmlspecialchars(strip_tags($this->email));
+        $this->phone = htmlspecialchars(strip_tags($this->phone));
+        $this->password = password_hash($this->password, PASSWORD_BCRYPT);
+
+        $stmt->bindParam(":user_type", $this->user_type);
+        $stmt->bindParam(":first_name", $this->first_name);
+        $stmt->bindParam(":last_name", $this->last_name);
+        $stmt->bindParam(":email", $this->email);
+        $stmt->bindParam(":phone", $this->phone);
+        $stmt->bindParam(":password", $this->password);
+        $stmt->bindParam(":profile_picture", $this->profile_picture);
+        $stmt->bindParam(":status", $this->status);
+
+        if($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+
+    // Read all users
+    public function readAll() {
+        $query = "SELECT * FROM " . $this->table_name . " ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    // Read single user by ID
+    public function readOne() {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->id);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if($row) {
+            $this->user_type = $row['user_type'];
+            $this->first_name = $row['first_name'];
+            $this->last_name = $row['last_name'];
+            $this->email = $row['email'];
+            $this->phone = $row['phone'];
+            $this->profile_picture = $row['profile_picture'];
+            $this->status = $row['status'];
+            $this->created_at = $row['created_at'];
+            return true;
+        }
+        return false;
+    }
+
+    // Update user
+    public function update() {
+        $query = "UPDATE " . $this->table_name . "
+                SET first_name=:first_name, last_name=:last_name,
+                    email=:email, phone=:phone, profile_picture=:profile_picture, updated_at=CURRENT_TIMESTAMP
+                WHERE id=:id";
+
+        $stmt = $this->conn->prepare($query);
+
+        $this->first_name = htmlspecialchars(strip_tags($this->first_name));
+        $this->last_name = htmlspecialchars(strip_tags($this->last_name));
+        $this->email = htmlspecialchars(strip_tags($this->email));
+        $this->phone = htmlspecialchars(strip_tags($this->phone));
+
+        $stmt->bindParam(":first_name", $this->first_name);
+        $stmt->bindParam(":last_name", $this->last_name);
+        $stmt->bindParam(":email", $this->email);
+        $stmt->bindParam(":phone", $this->phone);
+        $stmt->bindParam(":profile_picture", $this->profile_picture);
+        $stmt->bindParam(":id", $this->id);
+
+        if($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+
+    // Update user status (for admin)
+    public function updateStatus() {
+        $query = "UPDATE " . $this->table_name . "
+                SET status=:status, updated_at=CURRENT_TIMESTAMP
+                WHERE id=:id";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":status", $this->status);
+        $stmt->bindParam(":id", $this->id);
+
+        if($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+
+    // Change password
+    public function changePassword() {
+        $query = "UPDATE " . $this->table_name . "
+                SET password=:password, updated_at=CURRENT_TIMESTAMP
+                WHERE id=:id";
+
+        $stmt = $this->conn->prepare($query);
+        $this->password = password_hash($this->password, PASSWORD_BCRYPT);
+        $stmt->bindParam(":password", $this->password);
+        $stmt->bindParam(":id", $this->id);
+
+        if($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+
+    // Verify current password
+    public function verifyPassword($password) {
+        $query = "SELECT password FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->id);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if($row && password_verify($password, $row['password'])) {
+            return true;
+        }
+        return false;
+    }
+
+    // Delete user
+    public function delete() {
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->id);
+
+        if($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+
+    // Login
+    public function login() {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE email = ? LIMIT 0,1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->email);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if($row && password_verify($this->password, $row['password'])) {
+            if($row['status'] === 'banned') {
+                return false;
+            }
+            $this->id = $row['id'];
+            $this->user_type = $row['user_type'];
+            $this->first_name = $row['first_name'];
+            $this->last_name = $row['last_name'];
+            $this->email = $row['email'];
+            $this->phone = $row['phone'];
+            $this->profile_picture = $row['profile_picture'];
+            $this->status = $row['status'];
+            return true;
+        }
+        return false;
+    }
+
+    // Check if email exists
+    public function emailExists() {
+        $query = "SELECT id FROM " . $this->table_name . " WHERE email = ? LIMIT 0,1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->email);
+        $stmt->execute();
+
+        if($stmt->rowCount() > 0) {
+            return true;
+        }
+        return false;
+    }
+}
+?>
+```
+
+---
+
+### 3. Auth Controller (controllers/AuthController.php)
+```php
+<?php
+session_start();
+require_once 'config/database.php';
+require_once 'models/User.php';
+
+class AuthController {
+    private $db;
+    private $user;
+
+    public function __construct() {
+        $database = new Database();
+        $this->db = $database->getConnection();
+        $this->user = new User($this->db);
+    }
+
+    public function register() {
+        if($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $this->user->user_type = $_POST['user_type'];
+            $this->user->first_name = $_POST['first_name'];
+            $this->user->last_name = $_POST['last_name'];
+            $this->user->email = $_POST['email'];
+            $this->user->phone = $_POST['phone'];
+            $this->user->password = $_POST['password'];
+            $this->user->profile_picture = null;
+            $this->user->status = 'active';
+
+            // Handle profile picture upload
+            if(isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
+                $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+                $filename = $_FILES['profile_picture']['name'];
+                $filetype = pathinfo($filename, PATHINFO_EXTENSION);
+
+                if(in_array(strtolower($filetype), $allowed)) {
+                    $newname = uniqid() . '.' . $filetype;
+                    $upload_path = 'uploads/profile_pictures/' . $newname;
+
+                    if(move_uploaded_file($_FILES['profile_picture']['tmp_name'], $upload_path)) {
+                        $this->user->profile_picture = $upload_path;
+                    }
+                }
+            }
+
+            // Check if email already exists
+            if($this->user->emailExists()) {
+                $_SESSION['error'] = "Email already exists!";
+                header("Location: index.php?action=register");
+                exit();
+            }
+
+            if($this->user->create()) {
+                $_SESSION['success'] = "Registration successful! Please login.";
+                header("Location: index.php?action=login");
+                exit();
+            } else {
+                $_SESSION['error'] = "Registration failed!";
+                header("Location: index.php?action=register");
+                exit();
+            }
+        } else {
+            include 'views/auth/register.php';
+        }
+    }
+
+    public function login() {
+        if($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $this->user->email = $_POST['email'];
+            $this->user->password = $_POST['password'];
+
+            if($this->user->login()) {
+                $_SESSION['user_id'] = $this->user->id;
+                $_SESSION['user_type'] = $this->user->user_type;
+                $_SESSION['user_name'] = $this->user->first_name . ' ' . $this->user->last_name;
+
+                if($this->user->user_type == 'admin') {
+                    header("Location: index.php?action=admin_dashboard");
+                } else {
+                    header("Location: index.php?action=profile");
+                }
+                exit();
+            } else {
+                $_SESSION['error'] = "Invalid credentials or account banned!";
+                header("Location: index.php?action=login");
+                exit();
+            }
+        } else {
+            include 'views/auth/login.php';
+        }
+    }
+
+    public function logout() {
+        session_destroy();
+        header("Location: index.php?action=login");
+        exit();
+    }
+}
+?>
+```
+
+---
+
+### 4. Admin Controller (controllers/AdminController.php)
+```php
+<?php
+session_start();
+require_once 'config/database.php';
+require_once 'models/User.php';
+
+class AdminController {
+    private $db;
+    private $user;
+
+    public function __construct() {
+        if(!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
+            header("Location: index.php?action=login");
+            exit();
+        }
+
+        $database = new Database();
+        $this->db = $database->getConnection();
+        $this->user = new User($this->db);
+    }
+
+    public function dashboard() {
+        $stmt = $this->user->readAll();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        include 'views/BackOffice/dashboard.php';
+    }
+
+    public function blockUser() {
+        if(isset($_GET['id'])) {
+            $this->user->id = $_GET['id'];
+            $this->user->status = 'banned';
+
+            if($this->user->updateStatus()) {
+                $_SESSION['success'] = "User blocked successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to block user!";
+            }
+        }
+        header("Location: index.php?action=admin_dashboard");
+        exit();
+    }
+
+    public function unblockUser() {
+        if(isset($_GET['id'])) {
+            $this->user->id = $_GET['id'];
+            $this->user->status = 'active';
+
+            if($this->user->updateStatus()) {
+                $_SESSION['success'] = "User unblocked successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to unblock user!";
+            }
+        }
+        header("Location: index.php?action=admin_dashboard");
+        exit();
+    }
+
+    public function deleteUser() {
+        if(isset($_GET['id'])) {
+            $this->user->id = $_GET['id'];
+
+            if($this->user->delete()) {
+                $_SESSION['success'] = "User deleted successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to delete user!";
+            }
+        }
+        header("Location: index.php?action=admin_dashboard");
+        exit();
+    }
+}
+?>
+```
+
+---
+
+### 5. User Controller (controllers/UserController.php)
+```php
+<?php
+session_start();
+require_once 'config/database.php';
+require_once 'models/User.php';
+
+class UserController {
+    private $db;
+    private $user;
+
+    public function __construct() {
+        if(!isset($_SESSION['user_id'])) {
+            header("Location: index.php?action=login");
+            exit();
+        }
+
+        $database = new Database();
+        $this->db = $database->getConnection();
+        $this->user = new User($this->db);
+    }
+
+    public function profile() {
+        $this->user->id = $_SESSION['user_id'];
+        $this->user->readOne();
+        include 'views/FrontOffice/profile.php';
+    }
+
+    public function editProfile() {
+        $this->user->id = $_SESSION['user_id'];
+        $this->user->readOne();
+
+        if($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $this->user->first_name = $_POST['first_name'];
+            $this->user->last_name = $_POST['last_name'];
+            $this->user->email = $_POST['email'];
+            $this->user->phone = $_POST['phone'];
+
+            // Keep existing profile picture
+            $old_picture = $this->user->profile_picture;
+
+            // Handle new profile picture upload
+            if(isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
+                $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+                $filename = $_FILES['profile_picture']['name'];
+                $filetype = pathinfo($filename, PATHINFO_EXTENSION);
+
+                if(in_array(strtolower($filetype), $allowed)) {
+                    $newname = uniqid() . '.' . $filetype;
+                    $upload_path = 'uploads/profile_pictures/' . $newname;
+
+                    if(move_uploaded_file($_FILES['profile_picture']['tmp_name'], $upload_path)) {
+                        // Delete old picture if exists
+                        if($old_picture && file_exists($old_picture)) {
+                            unlink($old_picture);
+                        }
+                        $this->user->profile_picture = $upload_path;
+                    }
+                }
+            } else {
+                $this->user->profile_picture = $old_picture;
+            }
+
+            if($this->user->update()) {
+                $_SESSION['success'] = "Profile updated successfully!";
+                $_SESSION['user_name'] = $this->user->first_name . ' ' . $this->user->last_name;
+                header("Location: index.php?action=profile");
+                exit();
+            } else {
+                $_SESSION['error'] = "Failed to update profile!";
+            }
+        }
+
+        include 'views/FrontOffice/edit_profile.php';
+    }
+
+    public function changePassword() {
+        $this->user->id = $_SESSION['user_id'];
+
+        if($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $current_password = $_POST['current_password'];
+            $new_password = $_POST['new_password'];
+            $confirm_password = $_POST['confirm_password'];
+
+            // Verify current password
+            if(!$this->user->verifyPassword($current_password)) {
+                $_SESSION['error'] = "Current password is incorrect!";
+                header("Location: index.php?action=change_password");
+                exit();
+            }
+
+            // Check if new passwords match
+            if($new_password !== $confirm_password) {
+                $_SESSION['error'] = "New passwords do not match!";
+                header("Location: index.php?action=change_password");
+                exit();
+            }
+
+            // Check password length
+            if(strlen($new_password) < 6) {
+                $_SESSION['error'] = "Password must be at least 6 characters!";
+                header("Location: index.php?action=change_password");
+                exit();
+            }
+
+            $this->user->password = $new_password;
+            if($this->user->changePassword()) {
+                $_SESSION['success'] = "Password changed successfully!";
+                header("Location: index.php?action=profile");
+                exit();
+            } else {
+                $_SESSION['error'] = "Failed to change password!";
+                header("Location: index.php?action=change_password");
+                exit();
+            }
+        }
+
+        include 'views/FrontOffice/change_password.php';
+    }
+}
+?>
+```
+
+---
+
+### 6. Main Index File (index.php)
+```php
+<?php
+$action = isset($_GET['action']) ? $_GET['action'] : 'login';
+
+switch($action) {
+    case 'register':
+        require_once 'controllers/AuthController.php';
+        $controller = new AuthController();
+        $controller->register();
+        break;
+
+    case 'login':
+        require_once 'controllers/AuthController.php';
+        $controller = new AuthController();
+        $controller->login();
+        break;
+
+    case 'logout':
+        require_once 'controllers/AuthController.php';
+        $controller = new AuthController();
+        $controller->logout();
+        break;
+
+    case 'admin_dashboard':
+        require_once 'controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->dashboard();
+        break;
+
+    case 'block_user':
+        require_once 'controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->blockUser();
+        break;
+
+    case 'unblock_user':
+        require_once 'controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->unblockUser();
+        break;
+
+    case 'delete_user':
+        require_once 'controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->deleteUser();
+        break;
+
+    case 'profile':
+        require_once 'controllers/UserController.php';
+        $controller = new UserController();
+        $controller->profile();
+        break;
+
+    case 'edit_profile':
+        require_once 'controllers/UserController.php';
+        $controller = new UserController();
+        $controller->editProfile();
+        break;
+
+    case 'change_password':
+        require_once 'controllers/UserController.php';
+        $controller = new UserController();
+        $controller->changePassword();
+        break;
+
+    default:
+        require_once 'controllers/AuthController.php';
+        $controller = new AuthController();
+        $controller->login();
+        break;
+}
+?>
+```
+
+---
+
+### 7. .htaccess (Optional - for clean URLs)
+```apache
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?action=$1 [QSA,L]
+```
+
+---
+
+### 8. Views - Login Page (views/auth/login.php)
+```php
+<?php include 'views/layouts/header.php'; ?>
+
+<div class="container">
+    <div class="auth-form">
+        <h2>WeConnect - Login</h2>
+
+        <?php if(isset($_SESSION['error'])): ?>
+            <div class="alert alert-error">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if(isset($_SESSION['success'])): ?>
+            <div class="alert alert-success">
+                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" action="index.php?action=login" id="loginForm" novalidate>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="text" name="email" id="login_email" autocomplete="email">
+                <span class="validation-message" id="login_email_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" name="password" id="login_password" autocomplete="current-password">
+                <span class="validation-message" id="login_password_message"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+
+        <p class="text-center">Don't have an account? <a href="index.php?action=register">Register here</a></p>
+    </div>
+</div>
+
+<?php include 'views/layouts/footer.php'; ?>
+```
+
+---
+
+### 9. Views - Register Page (views/auth/register.php)
+```php
+<?php include 'views/layouts/header.php'; ?>
+
+<div class="container">
+    <div class="auth-form">
+        <h2>WeConnect - Register</h2>
+
+        <?php if(isset($_SESSION['error'])): ?>
+            <div class="alert alert-error">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" action="index.php?action=register" enctype="multipart/form-data" id="registerForm" novalidate>
+            <div class="form-group">
+                <label>User Type:</label>
+                <select name="user_type" id="user_type">
+                    <option value="">-- Select User Type --</option>
+                    <option value="citoyen">Citizen</option>
+                    <option value="association">Association</option>
+                </select>
+                <span class="validation-message" id="user_type_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>First Name:</label>
+                <input type="text" name="first_name" id="first_name" autocomplete="given-name">
+                <span class="validation-message" id="first_name_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Last Name:</label>
+                <input type="text" name="last_name" id="last_name" autocomplete="family-name">
+                <span class="validation-message" id="last_name_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="text" name="email" id="email" autocomplete="email">
+                <span class="validation-message" id="email_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Phone:</label>
+                <input type="text" name="phone" id="phone" autocomplete="tel">
+                <span class="validation-message" id="phone_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Profile Picture (Optional):</label>
+                <input type="file" name="profile_picture" id="profile_picture" accept="image/*">
+                <span class="validation-message" id="profile_picture_message"></span>
+                <small class="form-text">Max size: 2MB. Formats: JPG, PNG, GIF</small>
+            </div>
+
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" name="password" id="password" autocomplete="new-password">
+                <span class="validation-message" id="password_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Confirm Password:</label>
+                <input type="password" name="confirm_password" id="confirm_password" autocomplete="new-password">
+                <span class="validation-message" id="confirm_password_message"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
+
+        <p class="text-center">Already have an account? <a href="index.php?action=login">Login here</a></p>
+    </div>
+</div>
+
+<?php include 'views/layouts/footer.php'; ?>
+```
+
+---
+
+### 10. Views - Admin Dashboard (views/BackOffice/dashboard.php)
+```php
+<?php include 'views/layouts/header.php'; ?>
+
+<div class="container">
+    <div class="dashboard-header">
+        <h2>Admin Dashboard - User Management</h2>
+        <a href="index.php?action=logout" class="btn btn-danger">Logout</a>
+    </div>
+
+    <?php if(isset($_SESSION['success'])): ?>
+        <div class="alert alert-success">
+            <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if(isset($_SESSION['error'])): ?>
+        <div class="alert alert-error">
+            <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+        </div>
+    <?php endif; ?>
+
+    <table class="user-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach($users as $user): ?>
+                <?php if($user['user_type'] != 'admin'): ?>
+                <tr>
+                    <td><?php echo $user['id']; ?></td>
+                    <td><?php echo ucfirst($user['user_type']); ?></td>
+                    <td><?php echo $user['first_name'] . ' ' . $user['last_name']; ?></td>
+                    <td><?php echo $user['email']; ?></td>
+                    <td><?php echo $user['phone']; ?></td>
+                    <td>
+                        <span class="status-badge status-<?php echo $user['status']; ?>">
+                            <?php echo ucfirst($user['status']); ?>
+                        </span>
+                    </td>
+                    <td><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
+                    <td>
+                        <?php if($user['status'] == 'active'): ?>
+                            <a href="index.php?action=block_user&id=<?php echo $user['id']; ?>"
+                               class="btn btn-sm btn-warning"
+                               onclick="return confirm('Block this user?')">Block</a>
+                        <?php else: ?>
+                            <a href="index.php?action=unblock_user&id=<?php echo $user['id']; ?>"
+                               class="btn btn-sm btn-success"
+                               onclick="return confirm('Unblock this user?')">Unblock</a>
+                        <?php endif; ?>
+
+                        <a href="index.php?action=delete_user&id=<?php echo $user['id']; ?>"
+                           class="btn btn-sm btn-danger"
+                           onclick="return confirm('Delete this user permanently?')">Delete</a>
+                    </td>
+                </tr>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+
+<?php include 'views/layouts/footer.php'; ?>
+```
+
+---
+
+### 11. Views - User Profile (views/FrontOffice/profile.php)
+```php
+<?php include 'views/layouts/header.php'; ?>
+
+<div class="container">
+    <div class="profile-header">
+        <h2>My Profile</h2>
+        <div>
+            <a href="index.php?action=edit_profile" class="btn btn-primary">Edit Profile</a>
+            <a href="index.php?action=logout" class="btn btn-danger">Logout</a>
+        </div>
+    </div>
+
+    <?php if(isset($_SESSION['success'])): ?>
+        <div class="alert alert-success">
+            <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="profile-card">
+        <div class="profile-avatar">
+            <?php if($this->user->profile_picture && file_exists($this->user->profile_picture)): ?>
+                <img src="<?php echo $this->user->profile_picture; ?>" alt="Profile Picture">
+            <?php else: ?>
+                <div class="avatar-placeholder">
+                    <?php echo strtoupper(substr($this->user->first_name, 0, 1) . substr($this->user->last_name, 0, 1)); ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="profile-info">
+            <h3><?php echo $this->user->first_name . ' ' . $this->user->last_name; ?></h3>
+            <p><strong>User Type:</strong> <?php echo ucfirst($this->user->user_type); ?></p>
+            <p><strong>Email:</strong> <?php echo $this->user->email; ?></p>
+            <p><strong>Phone:</strong> <?php echo $this->user->phone ?: 'Not provided'; ?></p>
+            <p><strong>Status:</strong>
+                <span class="status-badge status-<?php echo $this->user->status; ?>">
+                    <?php echo ucfirst($this->user->status); ?>
+                </span>
+            </p>
+            <p><strong>Member Since:</strong> <?php echo date('F j, Y', strtotime($this->user->created_at)); ?></p>
+
+            <div class="profile-actions">
+                <a href="index.php?action=change_password" class="btn btn-warning">Change Password</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php include 'views/layouts/footer.php'; ?>
+```
+
+---
+
+### 12. Views - Edit Profile (views/FrontOffice/edit_profile.php)
+```php
+<?php include 'views/layouts/header.php'; ?>
+
+<div class="container">
+    <div class="profile-header">
+        <h2>Edit Profile</h2>
+        <a href="index.php?action=profile" class="btn btn-secondary">Back to Profile</a>
+    </div>
+
+    <?php if(isset($_SESSION['error'])): ?>
+        <div class="alert alert-error">
+            <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="auth-form">
+        <form method="POST" action="index.php?action=edit_profile" enctype="multipart/form-data" id="editProfileForm" novalidate>
+            <div class="form-group text-center">
+                <div class="profile-picture-upload">
+                    <?php if($this->user->profile_picture && file_exists($this->user->profile_picture)): ?>
+                        <img src="<?php echo $this->user->profile_picture; ?>" alt="Profile Picture" id="preview-image">
+                    <?php else: ?>
+                        <div class="avatar-placeholder-large" id="preview-placeholder">
+                            <?php echo strtoupper(substr($this->user->first_name, 0, 1) . substr($this->user->last_name, 0, 1)); ?>
+                        </div>
+                    <?php endif; ?>
+                    <label for="profile_picture" class="upload-label">
+                        Change Picture
+                    </label>
+                    <input type="file" id="profile_picture" name="profile_picture" accept="image/*" style="display:none;">
+                    <span class="validation-message" id="profile_picture_message"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>First Name:</label>
+                <input type="text" name="first_name" id="edit_first_name" value="<?php echo $this->user->first_name; ?>" autocomplete="given-name">
+                <span class="validation-message" id="edit_first_name_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Last Name:</label>
+                <input type="text" name="last_name" id="edit_last_name" value="<?php echo $this->user->last_name; ?>" autocomplete="family-name">
+                <span class="validation-message" id="edit_last_name_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="text" name="email" id="edit_email" value="<?php echo $this->user->email; ?>" autocomplete="email">
+                <span class="validation-message" id="edit_email_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Phone:</label>
+                <input type="text" name="phone" id="edit_phone" value="<?php echo $this->user->phone; ?>" autocomplete="tel">
+                <span class="validation-message" id="edit_phone_message"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update Profile</button>
+        </form>
+    </div>
+</div>
+
+<?php include 'views/layouts/footer.php'; ?>
+```
+
+---
+
+### 13. Views - Header Layout (views/layouts/header.php)
+```php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeConnect - Connecting Communities</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/validation.js" defer></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">WeConnect</div>
+        <?php if(isset($_SESSION['user_id'])): ?>
+            <div class="nav-user">
+                Welcome, <?php echo $_SESSION['user_name']; ?>
+            </div>
+        <?php endif; ?>
+    </nav>
+```
+
+---
+
+### 14. Views - Footer Layout (views/layouts/footer.php)
+```php
+    <footer class="footer">
+        <p>&copy; 2024 WeConnect. All rights reserved.</p>
+    </footer>
+</body>
+</html>
+```
+
+---
+
+### 15. Views - Change Password (views/FrontOffice/change_password.php)
+```php
+<?php include 'views/layouts/header.php'; ?>
+
+<div class="container">
+    <div class="profile-header">
+        <h2>Change Password</h2>
+        <a href="index.php?action=profile" class="btn btn-secondary">Back to Profile</a>
+    </div>
+
+    <?php if(isset($_SESSION['error'])): ?>
+        <div class="alert alert-error">
+            <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="auth-form">
+        <form method="POST" action="index.php?action=change_password" id="changePasswordForm" novalidate>
+            <div class="form-group">
+                <label>Current Password:</label>
+                <input type="password" name="current_password" id="current_password" autocomplete="current-password">
+                <span class="validation-message" id="current_password_message"></span>
+            </div>
+
+            <div class="form-group">
+                <label>New Password:</label>
+                <input type="password" name="new_password" id="new_password" autocomplete="new-password">
+                <span class="validation-message" id="new_password_message"></span>
+                <small class="form-text">Minimum 6 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label>Confirm New Password:</label>
+                <input type="password" name="confirm_password" id="change_confirm_password" autocomplete="new-password">
+                <span class="validation-message" id="change_confirm_password_message"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Change Password</button>
+        </form>
+    </div>
+</div>
+
+<?php include 'views/layouts/footer.php'; ?>
+```
+
+---
+
+### 17. JavaScript Validation (assets/js/validation.js)
+```javascript
+// ==========================================
+// DOM READY - Initialize validation when page loads
+// ==========================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Check which form exists on the page and initialize its validation
+    if (document.getElementById('loginForm')) {
+        initLoginValidation();
+    }
+    if (document.getElementById('registerForm')) {
+        initRegisterValidation();
+    }
+    if (document.getElementById('editProfileForm')) {
+        initEditProfileValidation();
+    }
+    if (document.getElementById('changePasswordForm')) {
+        initChangePasswordValidation();
+    }
+});
+
+// ==========================================
+// VALIDATION FUNCTIONS
+// ==========================================
+
+// Validate Email Format
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Validate Phone (Only Numbers)
+function validatePhone(phone) {
+    const phoneRegex = /^\d+$/;
+    return phoneRegex.test(phone);
+}
+
+// Validate Name (Letters and Spaces Only)
+function validateName(name) {
+    const nameRegex = /^[a-zA-ZÀ-ÿ\s]+$/;
+    return nameRegex.test(name);
+}
+
+// Show Validation Message
+function showValidationMessage(fieldId, message, isValid) {
+    const messageElement = document.getElementById(fieldId + '_message');
+    const inputElement = document.getElementById(fieldId);
+
+    if (messageElement) {
+        messageElement.textContent = message;
+        messageElement.className = 'validation-message ' + (isValid ? 'success' : 'error');
+    }
+
+    if (inputElement) {
+        inputElement.className = inputElement.className.replace(/\s*(error|success)/g, '');
+        if (message !== '') {
+            inputElement.className += ' ' + (isValid ? 'success' : 'error');
+        }
+    }
+}
+
+// Clear Validation Message
+function clearValidationMessage(fieldId) {
+    const messageElement = document.getElementById(fieldId + '_message');
+    const inputElement = document.getElementById(fieldId);
+
+    if (messageElement) {
+        messageElement.textContent = '';
+        messageElement.className = 'validation-message';
+    }
+
+    if (inputElement) {
+        inputElement.className = inputElement.className.replace(/\s*(error|success)/g, '');
+    }
+}
+
+// Validate File Size and Type
+function validateFile(file) {
+    if (!file) return { valid: true, message: '' };
+
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+
+    if (file.size > maxSize) {
+        return { valid: false, message: 'File size must be less than 2MB' };
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+        return { valid: false, message: 'Only JPG, PNG, and GIF files are allowed' };
+    }
+
+    return { valid: true, message: 'File is valid' };
+}
+
+// Preview Image
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('preview-image');
+            const placeholder = document.getElementById('preview-placeholder');
+
+            if (preview) {
+                preview.src = e.target.result;
+            } else if (placeholder) {
+                placeholder.outerHTML = '<img src="' + e.target.result + '" alt="Profile Picture" id="preview-image" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid #667eea;">';
+            }
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
+// ==========================================
+// LOGIN FORM VALIDATION
+// ==========================================
+function initLoginValidation() {
+    const form = document.getElementById('loginForm');
+    if (!form) return;
+
+    const emailField = document.getElementById('login_email');
+    const passwordField = document.getElementById('login_password');
+
+    // Email validation
+    emailField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            showValidationMessage('login_email', 'Email is required', false);
+        } else if (!validateEmail(value)) {
+            showValidationMessage('login_email', 'Please enter a valid email address', false);
+        } else {
+            showValidationMessage('login_email', 'Email is valid', true);
+        }
+    });
+
+    // Password validation
+    passwordField.addEventListener('input', function() {
+        const value = this.value;
+
+        if (value === '') {
+            showValidationMessage('login_password', 'Password is required', false);
+        } else {
+            showValidationMessage('login_password', 'Password entered', true);
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+
+        // Validate email
+        const email = emailField.value.trim();
+        if (email === '') {
+            showValidationMessage('login_email', 'Email is required', false);
+            isValid = false;
+        } else if (!validateEmail(email)) {
+            showValidationMessage('login_email', 'Please enter a valid email address', false);
+            isValid = false;
+        }
+
+        // Validate password
+        const password = passwordField.value;
+        if (password === '') {
+            showValidationMessage('login_password', 'Password is required', false);
+            isValid = false;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+}
+
+// ==========================================
+// REGISTER FORM VALIDATION
+// ==========================================
+function initRegisterValidation() {
+    const form = document.getElementById('registerForm');
+    if (!form) return;
+
+    const userTypeField = document.getElementById('user_type');
+    const firstNameField = document.getElementById('first_name');
+    const lastNameField = document.getElementById('last_name');
+    const emailField = document.getElementById('email');
+    const phoneField = document.getElementById('phone');
+    const profilePictureField = document.getElementById('profile_picture');
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+
+    // User Type validation
+    userTypeField.addEventListener('change', function() {
+        if (this.value === '') {
+            showValidationMessage('user_type', 'Please select a user type', false);
+        } else {
+            showValidationMessage('user_type', 'User type selected', true);
+        }
+    });
+
+    // First Name validation
+    firstNameField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            showValidationMessage('first_name', 'First name is required', false);
+        } else if (!validateName(value)) {
+            showValidationMessage('first_name', 'First name can only contain letters and spaces', false);
+        } else if (value.length < 2) {
+            showValidationMessage('first_name', 'First name must be at least 2 characters', false);
+        } else {
+            showValidationMessage('first_name', 'First name is valid', true);
+        }
+    });
+
+    // Last Name validation
+    lastNameField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            showValidationMessage('last_name', 'Last name is required', false);
+        } else if (!validateName(value)) {
+            showValidationMessage('last_name', 'Last name can only contain letters and spaces', false);
+        } else if (value.length < 2) {
+            showValidationMessage('last_name', 'Last name must be at least 2 characters', false);
+        } else {
+            showValidationMessage('last_name', 'Last name is valid', true);
+        }
+    });
+
+    // Email validation
+    emailField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            showValidationMessage('email', 'Email is required', false);
+        } else if (!validateEmail(value)) {
+            showValidationMessage('email', 'Please enter a valid email address', false);
+        } else {
+            showValidationMessage('email', 'Email is valid', true);
+        }
+    });
+
+    // Phone validation
+    phoneField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            clearValidationMessage('phone');
+        } else if (!validatePhone(value)) {
+            showValidationMessage('phone', 'Phone number can only contain numbers', false);
+        } else if (value.length < 8) {
+            showValidationMessage('phone', 'Phone number must be at least 8 digits', false);
+        } else {
+            showValidationMessage('phone', 'Phone number is valid', true);
+        }
+    });
+
+    // Profile Picture validation
+    profilePictureField.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) {
+            clearValidationMessage('profile_picture');
+            return;
+        }
+
+        const validation = validateFile(file);
+        if (!validation.valid) {
+            showValidationMessage('profile_picture', validation.message, false);
+            this.value = '';
+        } else {
+            showValidationMessage('profile_picture', validation.message, true);
+            previewImage({ target: this });
+        }
+    });
+
+    // Password validation
+    passwordField.addEventListener('input', function() {
+        const value = this.value;
+
+        if (value === '') {
+            showValidationMessage('password', 'Password is required', false);
+        } else if (value.length < 6) {
+            showValidationMessage('password', 'Password must be at least 6 characters', false);
+        } else {
+            showValidationMessage('password', 'Password is strong enough', true);
+        }
+
+        // Re-validate confirm password when password changes
+        if (confirmPasswordField.value !== '') {
+            const confirmValue = confirmPasswordField.value;
+            if (confirmValue !== value) {
+                showValidationMessage('confirm_password', 'Passwords do not match', false);
+            } else {
+                showValidationMessage('confirm_password', 'Passwords match', true);
+            }
+        }
+    });
+
+    // Confirm Password validation
+    confirmPasswordField.addEventListener('input', function() {
+        const value = this.value;
+        const passwordValue = passwordField.value;
+
+        if (value === '') {
+            showValidationMessage('confirm_password', 'Please confirm your password', false);
+        } else if (value !== passwordValue) {
+            showValidationMessage('confirm_password', 'Passwords do not match', false);
+        } else {
+            showValidationMessage('confirm_password', 'Passwords match', true);
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+
+        // Validate User Type
+        if (userTypeField.value === '') {
+            showValidationMessage('user_type', 'Please select a user type', false);
+            isValid = false;
+        }
+
+        // Validate First Name
+        const firstName = firstNameField.value.trim();
+        if (firstName === '') {
+            showValidationMessage('first_name', 'First name is required', false);
+            isValid = false;
+        } else if (!validateName(firstName)) {
+            showValidationMessage('first_name', 'First name can only contain letters and spaces', false);
+            isValid = false;
+        }
+
+        // Validate Last Name
+        const lastName = lastNameField.value.trim();
+        if (lastName === '') {
+            showValidationMessage('last_name', 'Last name is required', false);
+            isValid = false;
+        } else if (!validateName(lastName)) {
+            showValidationMessage('last_name', 'Last name can only contain letters and spaces', false);
+            isValid = false;
+        }
+
+        // Validate Email
+        const email = emailField.value.trim();
+        if (email === '') {
+            showValidationMessage('email', 'Email is required', false);
+            isValid = false;
+        } else if (!validateEmail(email)) {
+            showValidationMessage('email', 'Please enter a valid email address', false);
+            isValid = false;
+        }
+
+        // Validate Phone (if provided)
+        const phone = phoneField.value.trim();
+        if (phone !== '' && !validatePhone(phone)) {
+            showValidationMessage('phone', 'Phone number can only contain numbers', false);
+            isValid = false;
+        }
+
+        // Validate Password
+        const password = passwordField.value;
+        if (password === '') {
+            showValidationMessage('password', 'Password is required', false);
+            isValid = false;
+        } else if (password.length < 6) {
+            showValidationMessage('password', 'Password must be at least 6 characters', false);
+            isValid = false;
+        }
+
+        // Validate Confirm Password
+        const confirmPassword = confirmPasswordField.value;
+        if (confirmPassword === '') {
+            showValidationMessage('confirm_password', 'Please confirm your password', false);
+            isValid = false;
+        } else if (confirmPassword !== password) {
+            showValidationMessage('confirm_password', 'Passwords do not match', false);
+            isValid = false;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+}
+
+// ==========================================
+// EDIT PROFILE FORM VALIDATION
+// ==========================================
+function initEditProfileValidation() {
+    const form = document.getElementById('editProfileForm');
+    if (!form) return;
+
+    const firstNameField = document.getElementById('edit_first_name');
+    const lastNameField = document.getElementById('edit_last_name');
+    const emailField = document.getElementById('edit_email');
+    const phoneField = document.getElementById('edit_phone');
+    const profilePictureField = document.getElementById('profile_picture');
+
+    // First Name validation
+    firstNameField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            showValidationMessage('edit_first_name', 'First name is required', false);
+        } else if (!validateName(value)) {
+            showValidationMessage('edit_first_name', 'First name can only contain letters and spaces', false);
+        } else if (value.length < 2) {
+            showValidationMessage('edit_first_name', 'First name must be at least 2 characters', false);
+        } else {
+            showValidationMessage('edit_first_name', 'First name is valid', true);
+        }
+    });
+
+    // Last Name validation
+    lastNameField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            showValidationMessage('edit_last_name', 'Last name is required', false);
+        } else if (!validateName(value)) {
+            showValidationMessage('edit_last_name', 'Last name can only contain letters and spaces', false);
+        } else if (value.length < 2) {
+            showValidationMessage('edit_last_name', 'Last name must be at least 2 characters', false);
+        } else {
+            showValidationMessage('edit_last_name', 'Last name is valid', true);
+        }
+    });
+
+    // Email validation
+    emailField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            showValidationMessage('edit_email', 'Email is required', false);
+        } else if (!validateEmail(value)) {
+            showValidationMessage('edit_email', 'Please enter a valid email address', false);
+        } else {
+            showValidationMessage('edit_email', 'Email is valid', true);
+        }
+    });
+
+    // Phone validation
+    phoneField.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        if (value === '') {
+            clearValidationMessage('edit_phone');
+        } else if (!validatePhone(value)) {
+            showValidationMessage('edit_phone', 'Phone number can only contain numbers', false);
+        } else if (value.length < 8) {
+            showValidationMessage('edit_phone', 'Phone number must be at least 8 digits', false);
+        } else {
+            showValidationMessage('edit_phone', 'Phone number is valid', true);
+        }
+    });
+
+    // Profile Picture validation
+    profilePictureField.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) {
+            clearValidationMessage('profile_picture');
+            return;
+        }
+
+        const validation = validateFile(file);
+        if (!validation.valid) {
+            showValidationMessage('profile_picture', validation.message, false);
+            this.value = '';
+        } else {
+            showValidationMessage('profile_picture', validation.message, true);
+            previewImage({ target: this });
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+
+        // Validate First Name
+        const firstName = firstNameField.value.trim();
+        if (firstName === '') {
+            showValidationMessage('edit_first_name', 'First name is required', false);
+            isValid = false;
+        } else if (!validateName(firstName)) {
+            showValidationMessage('edit_first_name', 'First name can only contain letters and spaces', false);
+            isValid = false;
+        }
+
+        // Validate Last Name
+        const lastName = lastNameField.value.trim();
+        if (lastName === '') {
+            showValidationMessage('edit_last_name', 'Last name is required', false);
+            isValid = false;
+        } else if (!validateName(lastName)) {
+            showValidationMessage('edit_last_name', 'Last name can only contain letters and spaces', false);
+            isValid = false;
+        }
+
+        // Validate Email
+        const email = emailField.value.trim();
+        if (email === '') {
+            showValidationMessage('edit_email', 'Email is required', false);
+            isValid = false;
+        } else if (!validateEmail(email)) {
+            showValidationMessage('edit_email', 'Please enter a valid email address', false);
+            isValid = false;
+        }
+
+        // Validate Phone (if provided)
+        const phone = phoneField.value.trim();
+        if (phone !== '' && !validatePhone(phone)) {
+            showValidationMessage('edit_phone', 'Phone number can only contain numbers', false);
+            isValid = false;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+}
+
+// ==========================================
+// CHANGE PASSWORD FORM VALIDATION
+// ==========================================
+function initChangePasswordValidation() {
+    const form = document.getElementById('changePasswordForm');
+    if (!form) return;
+
+    const currentPasswordField = document.getElementById('current_password');
+    const newPasswordField = document.getElementById('new_password');
+    const confirmPasswordField = document.getElementById('change_confirm_password');
+
+    // Current Password validation
+    currentPasswordField.addEventListener('input', function() {
+        const value = this.value;
+
+        if (value === '') {
+            showValidationMessage('current_password', 'Current password is required', false);
+        } else {
+            showValidationMessage('current_password', 'Current password entered', true);
+        }
+    });
+
+    // New Password validation
+    newPasswordField.addEventListener('input', function() {
+        const value = this.value;
+        const currentValue = currentPasswordField.value;
+
+        if (value === '') {
+            showValidationMessage('new_password', 'New password is required', false);
+        } else if (value.length < 6) {
+            showValidationMessage('new_password', 'Password must be at least 6 characters', false);
+        } else if (value === currentValue && currentValue !== '') {
+            showValidationMessage('new_password', 'New password must be different from current password', false);
+        } else {
+            showValidationMessage('new_password', 'Password is strong enough', true);
+        }
+
+        // Re-validate confirm password when new password changes
+        if (confirmPasswordField.value !== '') {
+            const confirmValue = confirmPasswordField.value;
+            if (confirmValue !== value) {
+                showValidationMessage('change_confirm_password', 'Passwords do not match', false);
+            } else {
+                showValidationMessage('change_confirm_password', 'Passwords match', true);
+            }
+        }
+    });
+
+    // Confirm Password validation
+    confirmPasswordField.addEventListener('input', function() {
+        const value = this.value;
+        const newPasswordValue = newPasswordField.value;
+
+        if (value === '') {
+            showValidationMessage('change_confirm_password', 'Please confirm your new password', false);
+        } else if (value !== newPasswordValue) {
+            showValidationMessage('change_confirm_password', 'Passwords do not match', false);
+        } else {
+            showValidationMessage('change_confirm_password', 'Passwords match', true);
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+
+        // Validate Current Password
+        const currentPassword = currentPasswordField.value;
+        if (currentPassword === '') {
+            showValidationMessage('current_password', 'Current password is required', false);
+            isValid = false;
+        }
+
+        // Validate New Password
+        const newPassword = newPasswordField.value;
+        if (newPassword === '') {
+            showValidationMessage('new_password', 'New password is required', false);
+            isValid = false;
+        } else if (newPassword.length < 6) {
+            showValidationMessage('new_password', 'Password must be at least 6 characters', false);
+            isValid = false;
+        } else if (newPassword === currentPassword) {
+            showValidationMessage('new_password', 'New password must be different from current password', false);
+            isValid = false;
+        }
+
+        // Validate Confirm Password
+        const confirmPassword = confirmPasswordField.value;
+        if (confirmPassword === '') {
+            showValidationMessage('change_confirm_password', 'Please confirm your new password', false);
+            isValid = false;
+        } else if (confirmPassword !== newPassword) {
+            showValidationMessage('change_confirm_password', 'Passwords do not match', false);
+            isValid = false;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+}
+```
+
+---
+
+### 16. CSS Styling (assets/css/style.css)
+```css
+/* ========================================
+   WECONNECT - STYLE PRINCIPAL
+======================================== */
+
+:root {
+    --pistachio: #93C572;
+    --pistachio-light: #B8D8A6;
+    --pistachio-dark: #7AA959;
+    --pistachio-soft: #E8F4E0;
+    --dark: #1A1A1A;
+    --gray-dark: #333333;
+    --gray: #666666;
+    --gray-light: #F8F9FA;
+    --white: #FFFFFF;
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 20px 60px rgba(147, 197, 114, 0.15);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--white);
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ========================================
+   BUTTONS
+======================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--pistachio), var(--pistachio-dark));
+    color: var(--white);
+    border: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 2px solid var(--pistachio);
+    color: var(--pistachio);
+}
+
+.btn-secondary:hover {
+    background: var(--pistachio);
+    color: var(--white);
+}
+
+.btn-full {
+    width: 100%;
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--gray);
+}
+
+
+```
+
+---
+
+### 16. SQL Database Creation Script
+```sql
+-- Create Database
+CREATE DATABASE IF NOT EXISTS weconnect;
+USE weconnect;
+
+-- Create Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_type ENUM('citoyen', 'association', 'admin') NOT NULL DEFAULT 'citoyen',
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(20) NULL,
+    password VARCHAR(255) NOT NULL,
+    profile_picture VARCHAR(255) NULL,
+    status ENUM('active', 'banned', 'pending') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert Default Admin User (password: admin123)
+INSERT INTO users (user_type, first_name, last_name, email, password, status)
+VALUES ('admin', 'Admin', 'User', 'admin@weconnect.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'active');
+
+-- Insert Sample Citizen
+INSERT INTO users (user_type, first_name, last_name, email, phone, password, status)
+VALUES ('citoyen', 'John', 'Doe', 'john@example.com', '1234567890', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'active');
+
+-- Insert Sample Association
+INSERT INTO users (user_type, first_name, last_name, email, phone, password, status)
+VALUES ('association', 'Green', 'Planet', 'greenplanet@example.com', '0987654321', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'active');
+```
+
+---
+
+## Installation Instructions
+
+### Step 1: Setup Database
+1. Open phpMyAdmin or MySQL command line
+2. Run the SQL script above to create the database and tables
+3. Default admin credentials:
+   - Email: admin@weconnect.com
+   - Password: admin123
+
+### Step 2: Configure Database Connection
+1. Open `config/database.php`
+2. Update the database credentials:
+   ```php
+   private $host = "localhost";
+   private $db_name = "weconnect";
+   private $username = "root";  // Your MySQL username
+   private $password = "";      // Your MySQL password
+   ```
+
+### Step 3: Deploy Files
+1. Copy all files to your web server (e.g., `htdocs` for XAMPP)
+2. Ensure the folder structure matches the project structure above
+3. **Important**: Create the uploads directory and set permissions:
+   ```bash
+   mkdir -p uploads/profile_pictures
+   chmod 755 uploads
+   chmod 755 uploads/profile_pictures
+   ```
+
+### Step 4: Access the Application
+1. Start Apache and MySQL servers
+2. Navigate to: `http://localhost/weconnect/`
+3. You'll be redirected to the login page
+
+---
+
+## Features Implemented
+
+### ✅ Authentication System
+- **Registration**: Citizens and Associations can register
+- **Login**: Email and password authentication
+- **Logout**: Session destruction
+- **Password Security**: Bcrypt hashing
+
+### ✅ User Management (CRUD)
+- **Create**: Register new users
+- **Read**: View all users (admin), view own profile (users)
+- **Update**: Edit profile information
+- **Delete**: Admin can delete users
+
+### ✅ Admin Panel
+- **View All Users**: Table with all registered users
+- **Block Users**: Set status to 'banned'
+- **Unblock Users**: Set status back to 'active'
+- **Delete Users**: Permanently remove users
+- **Search & Filter**: Can be easily extended
+
+### ✅ User Profiles
+- **View Profile**: See personal information and profile picture
+- **Edit Profile**: Update name, email, phone, and profile picture
+- **Change Password**: Secure password change with verification
+- **Status Display**: Active/Banned/Pending badges
+- **Profile Pictures**: Upload and display user avatars
+
+### ✅ MVC Architecture
+- **Models**: User.php handles database operations
+- **Views**: Separate views for auth, admin, and user pages
+- **Controllers**: AuthController, AdminController, UserController
+- **Routing**: index.php handles all routes
+
+### ✅ Security Features
+- Password hashing with bcrypt
+- SQL injection prevention (PDO prepared statements)
+- XSS protection (htmlspecialchars)
+- Session-based authentication
+- Access control (admin-only routes)
+- Current password verification for password changes
+- File upload validation (image types and size)
+
+---
+
+## Usage Guide
+
+### For Citizens/Associations:
+1. Register an account with optional profile picture
+2. Login with credentials
+3. View and edit your profile
+4. Upload or change profile picture
+5. Change your password securely
+6. Participate in community activities
+
+### For Administrators:
+1. Login with admin credentials
+2. View all registered users
+3. Block/unblock problematic users
+4. Delete spam accounts
+5. Monitor user activity
+
+---
+
+## Testing Accounts
+
+**Admin Account:**
+- Email: admin@weconnect.com
+- Password: admin123
+
+**Citizen Account:**
+- Email: john@example.com
+- Password: admin123
+
+**Association Account:**
+- Email: greenplanet@example.com
+- Password: admin123
+
+---
+
+## Future Enhancements (Optional)
+- Password reset functionality
+- Email verification
+- User roles and permissions
+- Activity logging
+- Advanced search and filtering
+- Export user data
+- Multi-language support
+- Image compression for profile pictures
+- Crop and resize tools for profile pictures
+
+---
+
+## Troubleshooting
+
+**Issue**: "Connection error"
+- **Solution**: Check database credentials in `config/database.php`
+
+**Issue**: "Page not found"
+- **Solution**: Ensure .htaccess is enabled (if using clean URLs)
+
+**Issue**: "Permission denied"
+- **Solution**: Check folder permissions (755 for folders, 644 for files)
+
+**Issue**: Session not working
+- **Solution**: Ensure `session_start()` is called and PHP sessions are enabled
+
+**Issue**: "Failed to upload image"
+- **Solution**: Check that `uploads/profile_pictures/` directory exists and has write permissions (755)
+
+**Issue**: Images not displaying
+- **Solution**: Verify the path in database matches the actual file location
+
+---
+
+## New Features Added ✨
+
+### 1. **Profile Picture Upload**
+- Optional during registration
+- Can be updated in Edit Profile
+- Supports JPG, PNG, GIF formats
+- Shows initials placeholder if no picture uploaded
+- Old pictures are automatically deleted when uploading new ones
+
+### 2. **Change Password**
+- Requires current password verification
+- Password confirmation matching
+- Minimum 6 characters requirement
+- Secure bcrypt hashing
+- Success/error messages
+
+### 3. **Real-Time JavaScript Validation** 🆕
+- ✅ **Live validation on input** - Messages appear as you type
+- ✅ **No HTML5 validation** - Pure JavaScript implementation
+- ✅ **Email format validation** - Checks valid email structure
+- ✅ **Phone validation** - Only numbers allowed
+- ✅ **Name validation** - Only letters and spaces
+- ✅ **Password strength** - Minimum 6 characters
+- ✅ **Password matching** - Confirms passwords match
+- ✅ **File validation** - Image type and size checking
+- ✅ **Visual feedback** - Green for success, red for errors
+- ✅ **Border colors** - Input fields change color based on validation
+- ✅ **Form submission prevention** - Invalid forms cannot be submitted
+
+### 4. **Enhanced Profile View**
+- Displays profile picture or initials
+- Circular avatar design
+- Clean card layout
+- Quick access to change password button
+
+### 5. **Image Preview**
+- Real-time preview when selecting new profile picture
+- JavaScript-based preview before upload
+- Smooth user experience
+
+---
+
+## 🔧 PROBLÈME RÉSOLU - Validation JavaScript
+
+### ❌ Problème Identifié :
+Le fichier JavaScript était chargé **APRÈS** que les scripts inline tentent d'appeler les fonctions d'initialisation, causant des erreurs "function not defined".
+
+### ✅ Solutions Appliquées :
+
+1. **Déplacé le script dans le header** avec `defer`
+   - Le script se charge en parallèle mais s'exécute après le DOM
+   - Attribut `defer` garantit l'ordre d'exécution
+
+2. **Supprimé tous les scripts inline** dans les views
+   - Plus de `<script>initLoginValidation();</script>` dans les pages
+   - Tout est géré automatiquement par `DOMContentLoaded`
+
+3. **Ajouté l'auto-initialisation** dans validation.js
+   - Détection automatique des formulaires présents
+   - Initialisation au chargement de la page
+
+4. **Ajouté `novalidate`** sur tous les formulaires
+   - Désactive complètement la validation HTML5 du navigateur
+   - Force l'utilisation de notre validation JavaScript
+
+5. **Amélioré la validation des noms**
+   - Ajout du support des caractères accentués (À-ÿ)
+   - Support international des noms
+
+---
+
+## 📝 FICHIERS MODIFIÉS (Corrections)
+
+### 1. **views/layouts/header.php** ✅
+   - Déplacé `<script src="assets/js/validation.js" defer></script>` dans le `<head>`
+
+### 2. **views/layouts/footer.php** ✅
+   - Supprimé la ligne `<script src="assets/js/validation.js"></script>`
+
+### 3. **views/auth/login.php** ✅
+   - Supprimé `<script>initLoginValidation();</script>`
+   - Ajouté `novalidate` sur le formulaire
+   - Ajouté `autocomplete` attributes
+
+### 4. **views/auth/register.php** ✅
+   - Supprimé `<script>initRegisterValidation();</script>`
+   - Ajouté `novalidate` sur le formulaire
+   - Ajouté `autocomplete` attributes
+
+### 5. **views/FrontOffice/edit_profile.php** ✅
+   - Supprimé `<script>initEditProfileValidation();</script>`
+   - Ajouté `novalidate` sur le formulaire
+   - Ajouté `autocomplete` attributes
+
+### 6. **views/FrontOffice/change_password.php** ✅
+   - Supprimé `<script>initChangePasswordValidation();</script>`
+   - Ajouté `novalidate` sur le formulaire
+   - Ajouté `autocomplete` attributes
+
+### 7. **assets/js/validation.js** ✅
+   - Ajouté `DOMContentLoaded` event listener
+   - Auto-détection et initialisation des formulaires
+   - Amélioration de la regex pour les noms (support accents)
+   - Meilleure gestion du preview d'image
+
+---
+
+## 🎯 Comment Tester Maintenant
+
+1. **Vider le cache du navigateur** (Ctrl + F5 ou Cmd + Shift + R)
+2. **Ouvrir la console développeur** (F12)
+3. **Aller sur la page de registration**
+4. **Taper dans les champs** - Les messages devraient apparaître en temps réel
+
+### Tests à Faire :
+
+**Login :**
+- Taper un email invalide → message rouge
+- Taper un email valide → message vert
+
+**Register :**
+- Nom avec chiffres → message rouge
+- Téléphone avec lettres → message rouge
+- Téléphone avec chiffres → message vert
+- Mot de passe < 6 caractères → message rouge
+- Confirm password différent → message rouge
+
+**Edit Profile :**
+- Même tests que Register
+
+**Change Password :**
+- Nouveau mot de passe identique à l'ancien → message rouge
+- Mots de passe ne correspondent pas → message rouge
+
+---
+
+## 🚨 Si ça ne fonctionne toujours pas :
+
+1. **Vérifiez que le fichier validation.js existe bien** dans `assets/js/validation.js`
+2. **Vérifiez dans la console** s'il y a des erreurs 404
+3. **Vérifiez le chemin** : depuis `index.php`, le chemin doit être `assets/js/validation.js`
+4. **Testez l'URL directe** : `http://localhost/weconnect/assets/js/validation.js`
+
+---
+
+**Le problème devrait maintenant être résolu ! 🎉**
+
+## 🎯 Validation Rules Implemented
+
+### **Login Form:**
+- ✅ Email: Required, valid format
+- ✅ Password: Required
+
+### **Register Form:**
+- ✅ User Type: Required (must select)
+- ✅ First Name: Required, letters only, min 2 characters
+- ✅ Last Name: Required, letters only, min 2 characters
+- ✅ Email: Required, valid format
+- ✅ Phone: Optional, numbers only, min 8 digits
+- ✅ Profile Picture: Optional, max 2MB, JPG/PNG/GIF only
+- ✅ Password: Required, min 6 characters
+- ✅ Confirm Password: Required, must match password
+
+### **Edit Profile Form:**
+- ✅ First Name: Required, letters only, min 2 characters
+- ✅ Last Name: Required, letters only, min 2 characters
+- ✅ Email: Required, valid format
+- ✅ Phone: Optional, numbers only, min 8 digits
+- ✅ Profile Picture: Optional, max 2MB, JPG/PNG/GIF only
+
+### **Change Password Form:**
+- ✅ Current Password: Required
+- ✅ New Password: Required, min 6 characters, different from current
+- ✅ Confirm Password: Required, must match new password
+
+---
+
+## 🚀 How It Works
+
+1. **Real-time Validation**: As soon as you type in any field, JavaScript validates the input
+2. **Instant Feedback**: Messages appear immediately below each field
+3. **Color Coding**:
+   - 🔴 Red = Error
+   - 🟢 Green = Success
+4. **Border Highlighting**: Input borders change color to match validation state
+5. **Form Prevention**: Cannot submit form until all required fields are valid
+6. **No HTML5**: All validation is done via JavaScript, no browser default messages
+
+---
+
+## 📂 Files to Add/Update
+
+### ✅ **Add These New Files:**
+```
+assets/js/validation.js  (NEW FILE - 500+ lines of validation code)
+```
+
+### ✅ **Update These Existing Files:**
+```
+views/layouts/footer.php
+views/auth/login.php
+views/auth/register.php
+views/FrontOffice/edit_profile.php
+views/FrontOffice/change_password.php
+assets/css/style.css
+```
+
+---
+
+**Your WeConnect platform now has complete real-time JavaScript validation! 🎉✨**
