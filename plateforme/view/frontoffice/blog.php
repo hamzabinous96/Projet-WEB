@@ -83,101 +83,14 @@ $badge_colors = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blog de solidarité - WeConnect</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="style.css" rel="stylesheet">
+    <link href="blog.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Bouton admin flottant */
-        .admin-fab {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #93C572 0%, #7AA959 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            box-shadow: 0 10px 40px rgba(147, 197, 114, 0.4);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            border: none;
-            text-decoration: none;
-        }
-
-        .admin-fab:hover {
-            transform: translateY(-5px) scale(1.1);
-            box-shadow: 0 20px 60px rgba(147, 197, 114, 0.6);
-            background: linear-gradient(135deg, #7AA959 0%, #93C572 100%);
-        }
-
-        .admin-fab i {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
-        }
-
-        /* Badge admin dans la navbar */
-        .admin-badge-nav {
-            background: linear-gradient(135deg, #93C572 0%, #7AA959 100%);
-            color: white;
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .admin-badge-nav:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(147, 197, 114, 0.4);
-            color: white;
-        }
-
-        .blog-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .blog-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
-        }
-
-        .blog-card img {
-            height: 200px;
-            object-fit: cover;
-        }
-
-        .recent-post img {
-            border-radius: 8px;
-            object-fit: cover;
-            height: 60px;
-        }
-
-        .recent-post h5 {
-            font-size: 14px;
-        }
-    </style>
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
     <div class="container">
-        <a class="navbar-brand" href="#"><i class="fas fa-hands-helping me-1"></i>WeConnect</a>
+      <a class="navbar-brand" href="#">WeConnect</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -200,7 +113,7 @@ $badge_colors = [
                 <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
             </ul>
             <div class="ms-lg-3 mt-3 mt-lg-0 d-flex gap-2">
-                <button class="btn btn-primary" id="joinBtn">Rejoindre notre communauté</button>
+               
                 <!-- Bouton Admin dans la navbar -->
                 <a href="/categorie/plateforme/view/backoffice/back.php" class="admin-badge-nav">
                     <i class="fas fa-shield-alt"></i>

@@ -61,7 +61,35 @@ if (isset($_GET['edit'])) {
 // ===========================================
 // SAUVEGARDE (CREATE / UPDATE)
 // ===========================================
+$errors = [];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // -----------------------------
+    // VALIDATION DES CHAMPS
+    // -----------------------------
+    $titre   = trim($_POST['titre_blog'] ?? '');
+    $contenu = trim($_POST['contenu_blog'] ?? '');
+    $cat     = trim($_POST['categorie_blog'] ?? '');
+    
+    // Validation du titre
+    if (empty($titre)) {
+        $errors['titre_blog'] = "Le titre est obligatoire";
+    } elseif (strlen($titre) < 3) {
+        $errors['titre_blog'] = "Le titre doit contenir au moins 3 caractères";
+    }
+    
+    // Validation de la catégorie
+    if (empty($cat)) {
+        $errors['categorie_blog'] = "La catégorie est obligatoire";
+    }
+    
+    // Validation du contenu
+    if (empty($contenu)) {
+        $errors['contenu_blog'] = "Le contenu est obligatoire";
+    } elseif (strlen($contenu) < 10) {
+        $errors['contenu_blog'] = "Le contenu doit contenir au moins 10 caractères";
+    }
+    
     // -----------------------------
     // GESTION IMAGE UPLOAD
     // -----------------------------
@@ -75,48 +103,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $id      = !empty($_POST['id_blog']) ? (int) $_POST['id_blog'] : null;
-    $titre   = trim($_POST['titre_blog']);
-    $contenu = trim($_POST['contenu_blog']);
-    $cat     = trim($_POST['categorie_blog']);
     $publie  = isset($_POST['est_publie_blog']) ? 1 : 0;
     $cree_par  = 1;
 
-    if ($id) {
-        $sql = "UPDATE blogs
-                SET titre_blog = :t,
-                    contenu_blog = :c,
-                    categorie_blog = :cat,
-                    est_publie_blog = :p,
-                    date_modification_blog = NOW(),
-                    image_blog = :img
-                WHERE id_blog = :id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':t'         => $titre,
-            ':c'         => $contenu,
-            ':cat'       => $cat,
-            ':p'         => $publie,
-            ':id'        => $id,
-            ':img'       => $imageName
-        ]);
-    } else {
-        $sql = "INSERT INTO blogs
-                (titre_blog, contenu_blog, categorie_blog,
-                 date_creation_blog, image_blog, est_publie_blog, cree_par_blog)
-                VALUES (:t, :c, :cat, NOW(), :img, :p, :cree_par)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':t'         => $titre,
-            ':c'         => $contenu,
-            ':cat'       => $cat,
-            ':img'       => $imageName,
-            ':p'         => $publie,
-            ':cree_par'  => $cree_par
-        ]);
-    }
+    // Si pas d'erreurs, on sauvegarde
+    if (empty($errors)) {
+        if ($id) {
+            $sql = "UPDATE blogs
+                    SET titre_blog = :t,
+                        contenu_blog = :c,
+                        categorie_blog = :cat,
+                        est_publie_blog = :p,
+                        date_modification_blog = NOW(),
+                        image_blog = :img
+                    WHERE id_blog = :id";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':t'         => $titre,
+                ':c'         => $contenu,
+                ':cat'       => $cat,
+                ':p'         => $publie,
+                ':id'        => $id,
+                ':img'       => $imageName
+            ]);
+        } else {
+            $sql = "INSERT INTO blogs
+                    (titre_blog, contenu_blog, categorie_blog,
+                     date_creation_blog, image_blog, est_publie_blog, cree_par_blog)
+                    VALUES (:t, :c, :cat, NOW(), :img, :p, :cree_par)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':t'         => $titre,
+                ':c'         => $contenu,
+                ':cat'       => $cat,
+                ':img'       => $imageName,
+                ':p'         => $publie,
+                ':cree_par'  => $cree_par
+            ]);
+        }
 
-    header("Location: back.php");
-    exit;
+        header("Location: back.php");
+        exit;
+    }
 }
 
 // ===========================================
@@ -393,6 +421,18 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #c82333;
         }
 
+        /* ============ ERROR MESSAGES ============ */
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .input-error {
+            border-color: #dc3545 !important;
+        }
+
         /* ============ TABLE SECTION ============ */
         .table-section {
             background: white;
@@ -562,7 +602,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
             Admin Panel
         </div>
         <nav class="sidebar-menu">
-            <a href="#" class="menu-item">
+            <a href="backoffice.html" class="menu-item">
                 <i class="fas fa-chart-line"></i>
                 <span>Dashboard</span>
             </a>
@@ -619,33 +659,44 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <div class="form-group">
                     <label>Titre de l'article *</label>
-                    <input type="text" name="titre_blog" required
+                    <input type="text" name="titre_blog"
                            placeholder="Entrez le titre de votre article"
-                           value="<?= htmlspecialchars($article_edit['titre_blog']) ?>">
+                           value="<?= htmlspecialchars($_POST['titre_blog'] ?? $article_edit['titre_blog']) ?>"
+                           class="<?= isset($errors['titre_blog']) ? 'input-error' : '' ?>">
+                    <?php if (isset($errors['titre_blog'])): ?>
+                        <span class="error-message"><?= $errors['titre_blog'] ?></span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
                     <label>Catégorie *</label>
-                    <select name="categorie_blog" required>
+                    <select name="categorie_blog" class="<?= isset($errors['categorie_blog']) ? 'input-error' : '' ?>">
                         <option value="">Choisir une catégorie</option>
                         <?php foreach ($categories as $a): ?>
                         <option value="<?= $a["id_categorie"] ?>" 
-                                <?= $a["id_categorie"] == $article_edit['categorie_blog'] ? 'selected' : '' ?>>
+                                <?= ($a["id_categorie"] == ($_POST['categorie_blog'] ?? $article_edit['categorie_blog'])) ? 'selected' : '' ?>>
                             <?= htmlspecialchars($a["nom_categorie"]) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if (isset($errors['categorie_blog'])): ?>
+                        <span class="error-message"><?= $errors['categorie_blog'] ?></span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
                     <label>Contenu de l'article *</label>
-                    <textarea name="contenu_blog" required
-                              placeholder="Rédigez le contenu de votre article..."><?= htmlspecialchars($article_edit['contenu_blog']) ?></textarea>
+                    <textarea name="contenu_blog"
+                              placeholder="Rédigez le contenu de votre article..."
+                              class="<?= isset($errors['contenu_blog']) ? 'input-error' : '' ?>"><?= htmlspecialchars($_POST['contenu_blog'] ?? $article_edit['contenu_blog']) ?></textarea>
+                    <?php if (isset($errors['contenu_blog'])): ?>
+                        <span class="error-message"><?= $errors['contenu_blog'] ?></span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="checkbox-container">
                     <input type="checkbox" name="est_publie_blog" id="publier"
-                           <?= !empty($article_edit['est_publie_blog']) ? 'checked' : '' ?>>
+                           <?= !empty($_POST['est_publie_blog'] ?? $article_edit['est_publie_blog']) ? 'checked' : '' ?>>
                     <label for="publier">Publier immédiatement cet article</label>
                 </div>
 
@@ -658,7 +709,6 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             style="max-width:150px; margin-top:10px; border-radius:6px;">
                     <?php endif; ?>
                 </div>
-
 
                 <div class="button-group">
                     <button type="submit">
@@ -711,8 +761,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?= $a['id_blog'] ?></td>
                             <td><?= htmlspecialchars($a['titre_blog']) ?></td>
                             <td><?= htmlspecialchars($a['nom_categorie']) ?></td>
-                            <td><?= date('Y-m-d', strtotime($a['date_creation_blog'])) ?></td>
-                            <td>
+                       <td><?= date('Y-m-d', strtotime($a['date_creation_blog'])) ?></td>                            <td>
                                 <span class="badge badge-<?= $a['est_publie_blog'] ? 'publié' : 'brouillon' ?>">
                                     <?= $a['est_publie_blog'] ? 'Publié' : 'Brouillon' ?>
                                 </span>
