@@ -214,14 +214,14 @@ $projetsSupprimes = 0;
       <form method="POST" action="" id="projectForm">
         <div class="modal-body">
           <div class="form-group">
-            <label for="titre">Titre <span class="required">*</span></label>
-            <input type="text" id="titre" name="titre" class="form-control" required>
+            <label for="titre">Titre</label>
+            <input type="text" id="titre" name="titre" class="form-control">
           </div>
           
           <div class="form-group">
-            <label for="association">Association <span class="required">*</span></label>
+            <label for="association">Association</label>
             <?php if (!empty($associations)): ?>
-              <select id="association" name="association" class="form-control" required>
+              <select id="association" name="association" class="form-control">
                 <option value="">Sélectionner une association</option>
                 <?php foreach($associations as $association): ?>
                   <option value="<?php echo $association['id']; ?>">
@@ -283,8 +283,8 @@ $projetsSupprimes = 0;
           </div>
           
           <div class="form-group">
-            <label for="created_by">Créé par <span class="required">*</span></label>
-            <select id="created_by" name="created_by" class="form-control" required>
+            <label for="created_by">Créé par</label>
+            <select id="created_by" name="created_by" class="form-control">
               <option value="">Sélectionner un administrateur</option>
               <?php foreach($admins as $admin): ?>
                 <option value="<?php echo $admin['id']; ?>">
@@ -344,7 +344,7 @@ $projetsSupprimes = 0;
         </div>
         <div class="form-group">
           <label>Nom de la tâche</label>
-          <input type="text" name="taches[${tacheCount}][nom]" class="form-control" required>
+          <input type="text" name="taches[${tacheCount}][nom]" class="form-control">
         </div>
         <div class="form-group">
           <label>Description</label>

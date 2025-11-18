@@ -197,12 +197,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['modifier_projet'])) {
       <?php endif; ?>
     </div>
   </div>
-
-  <!-- Script pour debug (à retirer en production) -->
-  <script>
-    <?php if ($projet): ?>
-    console.log('Données du projet:', <?php echo json_encode($projet); ?>);
-    <?php endif; ?>
-  </script>
 </body>
 </html>
