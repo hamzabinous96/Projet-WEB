@@ -1,0 +1,968 @@
+/* ===== CSS RESET & BASE STYLES ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f4f4f4;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ===== COLOR SCHEME & VARIABLES ===== */
+:root {
+    --orange-cream: #FFB347;
+    --light-orange: #FFD699;
+    --turquoise: #40E0D0;
+    --dark-turquoise: #20B2AA;
+    --cream: #FFF8DC;
+}
+
+/* ===== LAYOUT COMPONENTS ===== */
+
+/* Header & Navigation */
+.header {
+    background: #2c3e50;
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.navbar {
+    padding: 0 20px;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.nav-logo a {
+    color: white;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: #34495e;
+    color: #3498db;
+}
+
+/* Update header active state with new color scheme */
+.nav-link.active {
+    background: var(--turquoise);
+    color: white;
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(135deg, var(--orange-cream) 0%, var(--turquoise) 100%);
+    color: white;
+    padding: 100px 0;
+    text-align: center;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.hero-content p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+/* Footer */
+.footer {
+    background: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 2rem 0;
+    margin-top: 4rem;
+}
+
+/* ===== CARD COMPONENTS ===== */
+
+/* Feature Cards */
+.feature-card {
+    background: var(--cream);
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+    border: 2px solid var(--light-orange);
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+}
+
+.feature-card h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+/* Role Cards */
+.role-card {
+    background: white;
+    padding: 3rem 2rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+    border: 3px solid transparent;
+    position: relative;
+}
+
+.role-card:hover {
+    transform: translateY(-5px);
+    border-color: #3498db;
+}
+
+.role-card h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.role-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--orange-cream), var(--turquoise));
+    border-radius: 10px 10px 0 0;
+}
+
+.coach-card::before {
+    background: linear-gradient(90deg, var(--turquoise), var(--dark-turquoise));
+}
+
+/* Course Cards */
+.course-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+}
+
+.course-card h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.course-category {
+    color: #7f8c8d;
+    font-style: italic;
+    margin-bottom: 1rem;
+}
+
+/* Material Cards */
+.material-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.material-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Action Cards */
+.action-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+}
+
+.action-card h4 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+/* Assignment Cards */
+.assignment-card {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.assignment-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+}
+
+/* Coach Cards */
+.coach-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.coach-card.featured {
+    border: 3px solid #FFD700;
+    background: linear-gradient(135deg, #FFF8DC, #FFEB3B);
+    position: relative;
+}
+
+.coach-card.featured::before {
+    content: '🌟';
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    font-size: 2rem;
+    background: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* ===== BUTTON STYLES ===== */
+.cta-button {
+    display: inline-block;
+    background: var(--turquoise);
+    color: white;
+    padding: 15px 35px;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background 0.3s;
+    font-size: 1.1rem;
+}
+
+.cta-button:hover {
+    background: var(--dark-turquoise);
+    transform: translateY(-2px);
+}
+
+.role-button {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--orange-cream), var(--turquoise));
+    color: white;
+    padding: 12px 30px;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-top: 1rem;
+    transition: background 0.3s;
+}
+
+.role-button:hover {
+    background: linear-gradient(135deg, var(--turquoise), var(--orange-cream));
+}
+
+.coach-button {
+    background: linear-gradient(135deg, var(--turquoise), var(--dark-turquoise));
+}
+
+.action-button, .course-button, .btn-message, .btn-materials {
+    display: inline-block;
+    background: var(--turquoise);
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.action-button:hover, .course-button:hover, .btn-message:hover, .btn-materials:hover {
+    background: var(--dark-turquoise);
+}
+
+.submit-button {
+    background: var(--orange-cream);
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+    width: 100%;
+}
+
+.submit-button:hover {
+    background: #FFA500;
+}
+
+.assignment-button {
+    display: block;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 1.2rem 2rem;
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-align: center;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+}
+
+.assignment-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.new-teacher-btn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.new-teacher-btn:hover {
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.btn-add-material {
+    background: #3498db;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* ===== FORM STYLES ===== */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.teacher-login-form {
+    margin-top: 2rem;
+}
+
+.course-selection {
+    display: grid;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.course-checkbox {
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.3s;
+}
+
+.course-checkbox:hover {
+    border-color: #3498db;
+    background: #f8f9fa;
+}
+
+.course-checkbox input[type="checkbox"] {
+    margin-right: 1rem;
+}
+
+.course-checkbox label {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.course-name {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.course-description {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* ===== IMAGE STYLES ===== */
+.hero-image, .features-image, .footer-image {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.hero-img, .feature-img, .footer-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 3px solid var(--cream);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.hero-img {
+    max-height: 300px;
+}
+
+.feature-img {
+    max-height: 200px;
+}
+
+.footer-img {
+    max-height: 80px;
+}
+
+.feature-icon-img {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.icon-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid var(--cream);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Avatar & Icon Styles */
+.coach-avatar {
+    width: 60px;
+    height: 60px;
+    background: #3498db;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.conversation-avatar {
+    width: 40px;
+    height: 40px;
+    background: #2c3e50;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-weight: bold;
+}
+
+.icon-circle {
+    background: linear-gradient(135deg, var(--orange-cream), var(--turquoise));
+}
+
+.coach-card .icon-circle {
+    background: linear-gradient(135deg, var(--turquoise), var(--dark-turquoise));
+}
+
+/* ===== GRID LAYOUTS ===== */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.role-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.materials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.coaches-grid {
+    display: grid;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.profile-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.assignment-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 3rem;
+    max-width: 900px;
+    margin: 0 auto 4rem;
+}
+
+/* ===== CHAT COMPONENTS ===== */
+.chat-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    height: 600px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.chat-sidebar {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-right: 1px solid #ddd;
+}
+
+.chat-main {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+    background: #f8f9fa;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.chat-input {
+    padding: 1rem;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 1rem;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.chat-input button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.chat-input button:hover {
+    background: #2980b9;
+}
+
+.conversation-list {
+    margin-top: 1rem;
+}
+
+.conversation {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    transition: background 0.3s;
+}
+
+.conversation:hover,
+.conversation.active {
+    background: #3498db;
+    color: white;
+}
+
+.message {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 10px;
+    max-width: 70%;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.message.received {
+    background: white;
+    margin-right: auto;
+    border: 1px solid #ddd;
+}
+
+.message.sent {
+    background: #3498db;
+    color: white;
+    margin-left: auto;
+}
+
+.message span {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    display: block;
+    margin-top: 5px;
+}
+
+.no-conversation {
+    text-align: center;
+    padding: 2rem;
+    color: #7f8c8d;
+}
+
+/* ===== UTILITY COMPONENTS ===== */
+
+/* Badges & Labels */
+.coach-badge {
+    background: #FFD700;
+    color: #333;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+
+.teacher-code {
+    background: #3498db;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+
+.material-type {
+    background: #f39c12;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+}
+
+.material-type-badge {
+    background: #f39c12;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* Stats & Meta */
+.coach-stats {
+    margin-top: 1rem;
+}
+
+.coach-stats .stat {
+    background: #f8f9fa;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+.material-meta {
+    display: flex;
+    justify-content: space-between;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+.material-date {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* Contact & Actions */
+.coach-contact {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.coach-actions {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Lists */
+.role-features {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+}
+
+.role-features li {
+    padding: 0.5rem 0;
+    color: #2c3e50;
+}
+
+.new-teacher-features {
+    margin: 2rem 0;
+}
+
+/* Alerts */
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 5px;
+}
+
+.alert.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Prompts */
+.add-material-prompt {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.assignment-footer {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid #e9ecef;
+}
+
+/* ===== SECTIONS ===== */
+.hero {
+    padding: 100px 0;
+}
+
+.features {
+    padding: 80px 0;
+    background: white;
+}
+
+.role-selection {
+    padding: 80px 0;
+}
+
+.courses {
+    padding: 80px 0;
+}
+
+.coach-registration {
+    padding: 80px 0;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.our-coaches {
+    padding: 80px 0;
+}
+
+.teacher-assignment {
+    padding: 80px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.coach-profile {
+    padding: 80px 0;
+}
+
+.materials {
+    padding: 80px 0;
+}
+
+.chat {
+    padding: 80px 0;
+}
+
+.profile-header {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.course-materials-block {
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.popular-coaches {
+    margin-bottom: 4rem;
+}
+
+/* ===== TYPOGRAPHY ===== */
+.features h2,
+.role-selection h2,
+.courses h2 {
+    text-align: center;
+    margin-bottom: 3rem;
+    font-size: 2.5rem;
+    color: #2c3e50;
+}
+
+.popular-coaches h3 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+    font-size: 2rem;
+}
+
+.assignment-content h3 {
+    font-size: 1.8rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.assignment-description {
+    color: #7f8c8d;
+    text-align: center;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    .nav-menu {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+    
+    .chat-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .chat-sidebar {
+        display: none;
+    }
+    
+    .role-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .assignment-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .coach-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .coach-actions {
+        margin-left: 0;
+        margin-top: 1rem;
+    }
+}
