@@ -11,34 +11,107 @@ $associations = $projectController->getAssociations();
 $admins = $projectController->getAdmins();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
-    $titre = $_POST['titre'];
+    // Nettoyage et validation des données
+    $titre = trim($_POST['titre'] ?? '');
     $association = $_POST['association'] ?? null;
-    $lieu = $_POST['lieu'];
-    $date_debut = $_POST['date_debut'];
-    $date_fin = $_POST['date_fin'];
-    $disponibilite = $_POST['disponibilite'];
-    $descriptionp = $_POST['descriptionp'];
-    $categorie = $_POST['categorie'];
-    $created_by = $_POST['created_by'];
+    $lieu = trim($_POST['lieu'] ?? '');
+    $date_debut = $_POST['date_debut'] ?? '';
+    $date_fin = $_POST['date_fin'] ?? '';
+    $disponibilite = $_POST['disponibilite'] ?? '';
+    $descriptionp = trim($_POST['descriptionp'] ?? '');
+    $categorie = $_POST['categorie'] ?? '';
+    $created_by = $_POST['created_by'] ?? '';
     $taches = $_POST['taches'] ?? [];
 
-    // Valider et formater les dates
-    if (!empty($date_debut)) {
-        $date_debut = date('Y-m-d', strtotime($date_debut));
-    } else {
-        $date_debut = null;
+    // Validation des champs obligatoires
+    $errors = [];
+
+    if (empty($titre)) {
+        $errors[] = "Le titre est obligatoire";
+    } elseif (strlen($titre) > 255) {
+        $errors[] = "Le titre ne doit pas dépasser 255 caractères";
     }
-    
+
+    if (empty($association)) {
+        $errors[] = "Vous devez sélectionner une association";
+    }
+
+    if (empty($lieu)) {
+        $errors[] = "Le lieu est obligatoire";
+    } elseif (strlen($lieu) > 255) {
+        $errors[] = "Le lieu ne doit pas dépasser 255 caractères";
+    }
+
+    if (empty($date_debut)) {
+        $errors[] = "La date de début est obligatoire";
+    } else {
+        $date_debut = date('Y-m-d', strtotime($date_debut));
+        if (!$date_debut || $date_debut == '1970-01-01') {
+            $errors[] = "La date de début n'est pas valide";
+        }
+    }
+
     if (!empty($date_fin)) {
         $date_fin = date('Y-m-d', strtotime($date_fin));
+        if (!$date_fin || $date_fin == '1970-01-01') {
+            $errors[] = "La date de fin n'est pas valide";
+        } elseif ($date_fin < $date_debut) {
+            $errors[] = "La date de fin ne peut pas être avant la date de début";
+        }
     } else {
         $date_fin = null;
     }
 
-    if (empty($association)) {
-        $message = "Erreur: Vous devez sélectionner une association";
-        $message_type = "error";
-    } else {
+    if (empty($disponibilite)) {
+        $errors[] = "La disponibilité est obligatoire";
+    } elseif (!in_array($disponibilite, ['disponible', 'complet', 'termine'])) {
+        $errors[] = "La disponibilité sélectionnée n'est pas valide";
+    }
+
+    if (empty($descriptionp)) {
+        $errors[] = "La description est obligatoire";
+    } elseif (strlen($descriptionp) > 1000) {
+        $errors[] = "La description ne doit pas dépasser 1000 caractères";
+    }
+
+    if (empty($categorie)) {
+        $errors[] = "La catégorie est obligatoire";
+    } elseif (!in_array($categorie, ['Solidarité', 'Environement', 'Education', 'Sante', 'Aide', 'Culture'])) {
+        $errors[] = "La catégorie sélectionnée n'est pas valide";
+    }
+
+    if (empty($created_by)) {
+        $errors[] = "Vous devez sélectionner un administrateur";
+    }
+
+    // Validation des tâches
+    $valid_taches = [];
+    if (!empty($taches)) {
+        foreach ($taches as $index => $tache) {
+            $tache_nom = trim($tache['nom'] ?? '');
+            $tache_description = trim($tache['description'] ?? '');
+            $tache_assignee = $tache['assignee'] ?? null;
+            
+            // Ne garder que les tâches avec un nom
+            if (!empty($tache_nom)) {
+                if (strlen($tache_nom) > 255) {
+                    $errors[] = "Le nom de la tâche #" . ($index + 1) . " ne doit pas dépasser 255 caractères";
+                }
+                
+                if (strlen($tache_description) > 500) {
+                    $errors[] = "La description de la tâche #" . ($index + 1) . " ne doit pas dépasser 500 caractères";
+                }
+                
+                $valid_taches[] = [
+                    'nom' => $tache_nom,
+                    'description' => $tache_description,
+                    'assignee' => !empty($tache_assignee) ? $tache_assignee : null
+                ];
+            }
+        }
+    }
+
+    if (empty($errors)) {
         $result = $projectController->addProject(
             $titre, $association, $lieu, $date_debut, $date_fin, 
             $disponibilite, $descriptionp, $categorie, $created_by
@@ -47,18 +120,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
         if ($result === true) {
             $lastProjectId = $projectController->getLastInsertId();
             
-            if ($lastProjectId && !empty($taches)) {
-                foreach ($taches as $tache) {
-                    if (!empty(trim($tache['nom']))) {
-                        $projectController->addTache(
-                            $tache['nom'],
-                            $tache['description'] ?? '',
-                            'en_attente',
-                            $lastProjectId,
-                            $tache['assignee'] ?? null,
-                            $created_by
-                        );
-                    }
+            if ($lastProjectId && !empty($valid_taches)) {
+                foreach ($valid_taches as $tache) {
+                    $projectController->addTache(
+                        $tache['nom'],
+                        $tache['description'],
+                        'en_attente',
+                        $lastProjectId,
+                        $tache['assignee'],
+                        $created_by
+                    );
                 }
             }
             
@@ -70,6 +141,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
             $message = "Erreur lors de l'ajout du projet: " . $result;
             $message_type = "error";
         }
+    } else {
+        $message = "Erreurs de validation:<br>" . implode("<br>", $errors);
+        $message_type = "error";
     }
 }
 
@@ -86,7 +160,39 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
   <title>Admin Panel - Ajouter un Projet</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link rel="stylesheet" href="../style/addprojet.css" />
+  <link rel="stylesheet" href="../style/addprojet.css" />
+  <style>
+    .error-field {
+      border: 2px solid #dc3545 !important;
+      background-color: #fff5f5;
+    }
+    
+    .error-message {
+      color: #dc3545;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .character-count {
+      font-size: 0.75rem;
+      color: #6c757d;
+      text-align: right;
+      margin-top: 0.25rem;
+    }
+    
+    .character-count.warning {
+      color: #ffc107;
+    }
+    
+    .character-count.error {
+      color: #dc3545;
+    }
+  </style>
 </head>
 <body>
   <div class="admin-wrapper">
@@ -134,17 +240,20 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
           <h3>Informations du Projet</h3>
         </div>
         <div class="card-body">
-          <form method="POST" action="" id="projectForm">
+          <form method="POST" action="" id="projectForm" novalidate>
             <div class="form-group">
-              <label for="titre">Titre</label>
+              <label for="titre">Titre *</label>
               <input type="text" id="titre" name="titre" class="form-control" 
-                     value="<?php echo isset($_POST['titre']) ? htmlspecialchars($_POST['titre']) : ''; ?>">
+                     value="<?php echo isset($_POST['titre']) ? htmlspecialchars($_POST['titre']) : ''; ?>"
+                     maxlength="255" required>
+              <div class="character-count" id="titre-count">0/255</div>
+              <span class="error-message" id="titre-error"></span>
             </div>
             
             <div class="form-group">
-              <label for="association">Association</label>
+              <label for="association">Association *</label>
               <?php if (!empty($associations)): ?>
-                <select id="association" name="association" class="form-control">
+                <select id="association" name="association" class="form-control" required>
                   <option value="">Sélectionner une association</option>
                   <?php foreach($associations as $association): ?>
                     <option value="<?php echo $association['id']; ?>" 
@@ -159,46 +268,56 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
                   Aucune association disponible. Créez d'abord des associations.
                 </div>
               <?php endif; ?>
+              <span class="error-message" id="association-error"></span>
             </div>
             
             <div class="form-group">
-              <label for="lieu">Lieu</label>
+              <label for="lieu">Lieu *</label>
               <input type="text" id="lieu" name="lieu" class="form-control"
-                     value="<?php echo isset($_POST['lieu']) ? htmlspecialchars($_POST['lieu']) : ''; ?>">
+                     value="<?php echo isset($_POST['lieu']) ? htmlspecialchars($_POST['lieu']) : ''; ?>"
+                     maxlength="255" required>
+              <div class="character-count" id="lieu-count">0/255</div>
+              <span class="error-message" id="lieu-error"></span>
             </div>
             
             <div class="form-row">
               <div class="form-group">
-                <label for="date_debut">Date de début</label>
+                <label for="date_debut">Date de début *</label>
                 <input type="date" id="date_debut" name="date_debut" class="form-control"
-                       value="<?php echo isset($_POST['date_debut']) ? htmlspecialchars($_POST['date_debut']) : $date_debut_default; ?>">
+                       value="<?php echo isset($_POST['date_debut']) ? htmlspecialchars($_POST['date_debut']) : $date_debut_default; ?>"
+                       required>
+                <span class="error-message" id="date_debut-error"></span>
               </div>
               
               <div class="form-group">
                 <label for="date_fin">Date de fin</label>
                 <input type="date" id="date_fin" name="date_fin" class="form-control"
                        value="<?php echo isset($_POST['date_fin']) ? htmlspecialchars($_POST['date_fin']) : $date_fin_default; ?>">
+                <span class="error-message" id="date_fin-error"></span>
               </div>
             </div>
             
             <div class="form-group">
-              <label for="disponibilite">Disponibilité</label>
-              <select id="disponibilite" name="disponibilite" class="form-control">
+              <label for="disponibilite">Disponibilité *</label>
+              <select id="disponibilite" name="disponibilite" class="form-control" required>
                 <option value="">Sélectionner</option>
                 <option value="disponible" <?php echo (isset($_POST['disponibilite']) && $_POST['disponibilite'] == 'disponible') ? 'selected' : ''; ?>>Disponible</option>
                 <option value="complet" <?php echo (isset($_POST['disponibilite']) && $_POST['disponibilite'] == 'complet') ? 'selected' : ''; ?>>Complet</option>
                 <option value="termine" <?php echo (isset($_POST['disponibilite']) && $_POST['disponibilite'] == 'termine') ? 'selected' : ''; ?>>Terminé</option>
               </select>
+              <span class="error-message" id="disponibilite-error"></span>
             </div>
             
             <div class="form-group">
-              <label for="descriptionp">Description</label>
-              <textarea id="descriptionp" name="descriptionp" class="form-control"><?php echo isset($_POST['descriptionp']) ? htmlspecialchars($_POST['descriptionp']) : ''; ?></textarea>
+              <label for="descriptionp">Description *</label>
+              <textarea id="descriptionp" name="descriptionp" class="form-control" maxlength="1000" required><?php echo isset($_POST['descriptionp']) ? htmlspecialchars($_POST['descriptionp']) : ''; ?></textarea>
+              <div class="character-count" id="descriptionp-count">0/1000</div>
+              <span class="error-message" id="descriptionp-error"></span>
             </div>
             
             <div class="form-group">
-              <label for="categorie">Catégorie</label>
-              <select id="categorie" name="categorie" class="form-control">
+              <label for="categorie">Catégorie *</label>
+              <select id="categorie" name="categorie" class="form-control" required>
                 <option value="">Sélectionner</option>
                 <option value="Solidarité" <?php echo (isset($_POST['categorie']) && $_POST['categorie'] == 'Solidarité') ? 'selected' : ''; ?>>Solidarité</option>
                 <option value="Environement" <?php echo (isset($_POST['categorie']) && $_POST['categorie'] == 'Environement') ? 'selected' : ''; ?>>Environement</option>
@@ -207,11 +326,12 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
                 <option value="Aide" <?php echo (isset($_POST['categorie']) && $_POST['categorie'] == 'Aide') ? 'selected' : ''; ?>>Aide</option>
                 <option value="Culture" <?php echo (isset($_POST['categorie']) && $_POST['categorie'] == 'Culture') ? 'selected' : ''; ?>>Culture</option>
               </select>
+              <span class="error-message" id="categorie-error"></span>
             </div>
             
             <div class="form-group">
-              <label for="created_by">Créé par</label>
-              <select id="created_by" name="created_by" class="form-control">
+              <label for="created_by">Créé par *</label>
+              <select id="created_by" name="created_by" class="form-control" required>
                 <option value="">Sélectionner un administrateur</option>
                 <?php foreach($admins as $admin): ?>
                   <option value="<?php echo $admin['id']; ?>"
@@ -220,6 +340,7 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
                   </option>
                 <?php endforeach; ?>
               </select>
+              <span class="error-message" id="created_by-error"></span>
             </div>
 
             <div class="taches-section">
@@ -240,12 +361,14 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
                       </div>
                       <div class="form-group">
                         <label>Nom de la tâche</label>
-                        <input type="text" name="taches[<?php echo $index; ?>][nom]" class="form-control" 
-                               value="<?php echo htmlspecialchars($tache['nom'] ?? ''); ?>">
+                        <input type="text" name="taches[<?php echo $index; ?>][nom]" class="form-control tache-nom" 
+                               value="<?php echo htmlspecialchars($tache['nom'] ?? ''); ?>" maxlength="255">
+                        <div class="character-count"><?php echo strlen($tache['nom'] ?? ''); ?>/255</div>
                       </div>
                       <div class="form-group">
                         <label>Description</label>
-                        <textarea name="taches[<?php echo $index; ?>][description]" class="form-control"><?php echo htmlspecialchars($tache['description'] ?? ''); ?></textarea>
+                        <textarea name="taches[<?php echo $index; ?>][description]" class="form-control tache-description" maxlength="500"><?php echo htmlspecialchars($tache['description'] ?? ''); ?></textarea>
+                        <div class="character-count"><?php echo strlen($tache['description'] ?? ''); ?>/500</div>
                       </div>
                       <div class="form-group">
                         <label>Assigné à</label>
@@ -280,6 +403,61 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
   <script>
     let tacheCount = <?php echo isset($_POST['taches']) ? count($_POST['taches']) : 0; ?>;
     
+    // Fonctions pour le comptage de caractères
+    function updateCharacterCount(element, counterId, maxLength) {
+      const count = element.value.length;
+      const counter = document.getElementById(counterId);
+      counter.textContent = `${count}/${maxLength}`;
+      
+      if (count > maxLength * 0.9) {
+        counter.className = 'character-count error';
+      } else if (count > maxLength * 0.7) {
+        counter.className = 'character-count warning';
+      } else {
+        counter.className = 'character-count';
+      }
+    }
+    
+    function validateField(field, errorId, rules) {
+      const value = field.value.trim();
+      const errorElement = document.getElementById(errorId);
+      let isValid = true;
+      let errorMessage = '';
+      
+      if (rules.required && !value) {
+        isValid = false;
+        errorMessage = rules.required;
+      } else if (rules.maxLength && value.length > rules.maxLength) {
+        isValid = false;
+        errorMessage = `Ne doit pas dépasser ${rules.maxLength} caractères`;
+      } else if (rules.pattern && !rules.pattern.test(value)) {
+        isValid = false;
+        errorMessage = rules.patternMessage || 'Format invalide';
+      }
+      
+      if (isValid) {
+        field.classList.remove('error-field');
+        errorElement.textContent = '';
+      } else {
+        field.classList.add('error-field');
+        errorElement.textContent = errorMessage;
+      }
+      
+      return isValid;
+    }
+    
+    // Configuration de validation pour chaque champ
+    const validationRules = {
+      titre: { required: 'Le titre est obligatoire', maxLength: 255 },
+      association: { required: 'Une association est obligatoire' },
+      lieu: { required: 'Le lieu est obligatoire', maxLength: 255 },
+      date_debut: { required: 'La date de début est obligatoire' },
+      disponibilite: { required: 'La disponibilité est obligatoire' },
+      descriptionp: { required: 'La description est obligatoire', maxLength: 1000 },
+      categorie: { required: 'La catégorie est obligatoire' },
+      created_by: { required: 'Un administrateur est obligatoire' }
+    };
+    
     document.getElementById('addTache').addEventListener('click', function() {
       const container = document.getElementById('taches-container');
       const tacheItem = document.createElement('div');
@@ -295,11 +473,13 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
         </div>
         <div class="form-group">
           <label>Nom de la tâche</label>
-          <input type="text" name="taches[${tacheCount}][nom]" class="form-control">
+          <input type="text" name="taches[${tacheCount}][nom]" class="form-control tache-nom" maxlength="255">
+          <div class="character-count">0/255</div>
         </div>
         <div class="form-group">
           <label>Description</label>
-          <textarea name="taches[${tacheCount}][description]" class="form-control"></textarea>
+          <textarea name="taches[${tacheCount}][description]" class="form-control tache-description" maxlength="500"></textarea>
+          <div class="character-count">0/500</div>
         </div>
         <div class="form-group">
           <label>Assigné à</label>
@@ -313,6 +493,21 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       `;
       
       container.appendChild(tacheItem);
+      
+      // Ajouter les écouteurs d'événements pour les nouvelles tâches
+      const nomInput = tacheItem.querySelector('.tache-nom');
+      const descTextarea = tacheItem.querySelector('.tache-description');
+      
+      nomInput.addEventListener('input', function() {
+        const count = this.value.length;
+        this.nextElementSibling.textContent = `${count}/255`;
+      });
+      
+      descTextarea.addEventListener('input', function() {
+        const count = this.value.length;
+        this.nextElementSibling.textContent = `${count}/500`;
+      });
+      
       tacheCount++;
     });
     
@@ -339,50 +534,132 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       tacheCount = tacheItems.length;
     }
     
-    document.addEventListener('DOMContentLoaded', function() {
+    // Validation du formulaire avant soumission
+    function validateForm() {
+      let isValid = true;
+      
+      for (const [fieldName, rules] of Object.entries(validationRules)) {
+        const field = document.getElementById(fieldName);
+        if (field) {
+          if (!validateField(field, `${fieldName}-error`, rules)) {
+            isValid = false;
+          }
+        }
+      }
+      
+      // Validation des dates
       const dateDebut = document.getElementById('date_debut');
       const dateFin = document.getElementById('date_fin');
       
-      // Définir des dates par défaut si vides
-      const aujourdhui = new Date().toISOString().split('T')[0];
-      const dansUnMois = new Date();
-      dansUnMois.setMonth(dansUnMois.getMonth() + 1);
-      const dansUnMoisStr = dansUnMois.toISOString().split('T')[0];
+      if (dateDebut.value && dateFin.value && dateDebut.value > dateFin.value) {
+        isValid = false;
+        document.getElementById('date_fin-error').textContent = 'La date de fin ne peut pas être avant la date de début';
+        dateFin.classList.add('error-field');
+      }
       
-      if (dateDebut && !dateDebut.value) {
-        dateDebut.value = aujourdhui;
+      return isValid;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialiser les compteurs de caractères
+      const titre = document.getElementById('titre');
+      const lieu = document.getElementById('lieu');
+      const descriptionp = document.getElementById('descriptionp');
+      
+      if (titre) {
+        updateCharacterCount(titre, 'titre-count', 255);
+        titre.addEventListener('input', function() {
+          updateCharacterCount(this, 'titre-count', 255);
+          validateField(this, 'titre-error', validationRules.titre);
+        });
       }
-      if (dateFin && !dateFin.value) {
-        dateFin.value = dansUnMoisStr;
+      
+      if (lieu) {
+        updateCharacterCount(lieu, 'lieu-count', 255);
+        lieu.addEventListener('input', function() {
+          updateCharacterCount(this, 'lieu-count', 255);
+          validateField(this, 'lieu-error', validationRules.lieu);
+        });
       }
+      
+      if (descriptionp) {
+        updateCharacterCount(descriptionp, 'descriptionp-count', 1000);
+        descriptionp.addEventListener('input', function() {
+          updateCharacterCount(this, 'descriptionp-count', 1000);
+          validateField(this, 'descriptionp-error', validationRules.descriptionp);
+        });
+      }
+      
+      // Ajouter les écouteurs pour la validation en temps réel
+      Object.keys(validationRules).forEach(fieldName => {
+        const field = document.getElementById(fieldName);
+        if (field) {
+          field.addEventListener('blur', function() {
+            validateField(this, `${fieldName}-error`, validationRules[fieldName]);
+          });
+          
+          field.addEventListener('input', function() {
+            if (this.classList.contains('error-field')) {
+              validateField(this, `${fieldName}-error`, validationRules[fieldName]);
+            }
+          });
+        }
+      });
+      
+      // Validation des dates
+      const dateDebut = document.getElementById('date_debut');
+      const dateFin = document.getElementById('date_fin');
       
       if (dateDebut && dateFin) {
         dateDebut.addEventListener('change', function() {
+          validateField(this, 'date_debut-error', validationRules.date_debut);
           if (dateFin.value && this.value > dateFin.value) {
-            alert('La date de début ne peut pas être après la date de fin');
             dateFin.value = this.value;
           }
         });
         
         dateFin.addEventListener('change', function() {
           if (dateDebut.value && this.value < dateDebut.value) {
-            alert('La date de fin ne peut pas être avant la date de début');
-            dateDebut.value = this.value;
+            document.getElementById('date_fin-error').textContent = 'La date de fin ne peut pas être avant la date de début';
+            this.classList.add('error-field');
+          } else {
+            document.getElementById('date_fin-error').textContent = '';
+            this.classList.remove('error-field');
           }
         });
       }
+      
+      // Compteurs de caractères pour les tâches existantes
+      document.querySelectorAll('.tache-nom').forEach(input => {
+        input.addEventListener('input', function() {
+          const count = this.value.length;
+          this.nextElementSibling.textContent = `${count}/255`;
+        });
+      });
+      
+      document.querySelectorAll('.tache-description').forEach(textarea => {
+        textarea.addEventListener('input', function() {
+          const count = this.value.length;
+          this.nextElementSibling.textContent = `${count}/500`;
+        });
+      });
       
       const form = document.getElementById('projectForm');
       form.addEventListener('submit', function(e) {
         <?php if (empty($associations)): ?>
           e.preventDefault();
           alert('Aucune association disponible. Créez d\'abord des associations dans la base de données.');
+          return false;
         <?php endif; ?>
         
-        // Validation supplémentaire des dates
-        if (dateDebut.value && dateFin.value && dateDebut.value > dateFin.value) {
+        if (!validateForm()) {
           e.preventDefault();
-          alert('Erreur : La date de début ne peut pas être après la date de fin');
+          // Faire défiler jusqu'au premier champ en erreur
+          const firstError = document.querySelector('.error-field');
+          if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstError.focus();
+          }
           return false;
         }
       });

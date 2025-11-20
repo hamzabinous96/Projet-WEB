@@ -74,8 +74,8 @@ $totalCategories = count($categories); // Maintenant on compte toutes les catég
             <a href="#contact" class="nav-link">Contact</a>
         </div>
         <div class="nav-actions">
-            <button class="btn-login">Connexion</button>
-            <button class="btn-primary">S'inscrire</button>
+            <button class="btn-login" onclick="location.href='login.php'">Connexion</button>
+            <button class="btn-primary"onclick="location.href='register.php'">S'inscrire</button>
         </div>
         <div class="hamburger">
             <span></span>

@@ -2,10 +2,12 @@
 require_once(__DIR__ . '/../../config.php');
 require_once(__DIR__ . '/../../CONTROLLER/ProjectController.php');
 
+// Démarrer la session pour vérifier la connexion
+session_start();
+
 $projectController = new ProjectController();
 
 $projectId = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
 $project = $projectController->getProjectById($projectId);
 
 if (!$project) {
@@ -13,17 +15,28 @@ if (!$project) {
     exit('Projet non trouvé');
 }
 
+// VÉRIFICATION DE LA CONNEXION
+$isLoggedIn = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+$currentUserId = $isLoggedIn ? $_SESSION['user_id'] : null;
+$currentUserName = $isLoggedIn ? ($_SESSION['user_name'] ?? 'Utilisateur') : '';
+
 $participantsCount = $projectController->getParticipantsCount($projectId);
 $projectTasks = $projectController->getTasksByProject($projectId);
 
 // Traitement de la confirmation de participation
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_participation'])) {
+    // Vérifier que l'utilisateur est connecté
+    if (!$isLoggedIn) {
+        header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
+        exit();
+    }
+    
     $selectedTasks = $_POST['selected_tasks'] ?? [];
     
     if (!empty($selectedTasks)) {
-        // Mettre à jour le statut de chaque tâche sélectionnée
+        // Mettre à jour le statut de chaque tâche sélectionnée avec l'ID utilisateur
         foreach ($selectedTasks as $taskId) {
-            $projectController->updateTaskStatus($taskId, 'prise');
+            $projectController->updateTaskStatus($taskId, 'prise', $currentUserId);
         }
         
         // Recharger les tâches pour afficher les nouveaux statuts
@@ -80,7 +93,6 @@ $categoryNames = [
   <title><?php echo $projectTitle; ?> - WeConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="../style/details.css">
-  <link rel="stylesheet" href="../style/projects.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
  
@@ -99,8 +111,13 @@ $categoryNames = [
             <a href="#contact" class="nav-link">Contact</a>
         </div>
         <div class="nav-actions">
-            <button class="btn-login" onclick="location.href='login.php'">Connexion</button>
-            <button class="btn-primary" onclick="location.href='register.php'">S'inscrire</button>
+            <?php if ($isLoggedIn): ?>
+                <span class="welcome-text">Bonjour, <?php echo htmlspecialchars($currentUserName); ?></span>
+                <button class="btn-login" onclick="location.href='logout.php'">Déconnexion</button>
+            <?php else: ?>
+                <button class="btn-login" onclick="location.href='login.php'">Connexion</button>
+                <button class="btn-primary" onclick="location.href='register.php'">S'inscrire</button>
+            <?php endif; ?>
         </div>
         <div class="hamburger">
             <span></span>
@@ -258,14 +275,24 @@ $categoryNames = [
                 </div>
                 
                 <?php if ($availability === 'disponible'): ?>
-                    <button class="btn-primary full-width" id="participateBtn">
-                        <i class="fas fa-hand-holding-heart"></i>
-                        Participer au projet
-                    </button>
-                    <button class="btn-secondary full-width" id="saveProjectBtn">
-                        <i class="fas fa-heart"></i>
-                        Sauvegarder le projet
-                    </button>
+                    <?php if ($isLoggedIn): ?>
+                        <!-- Utilisateur connecté -->
+                        <button class="btn-primary full-width" id="participateBtn">
+                            <i class="fas fa-hand-holding-heart"></i>
+                            Participer au projet
+                        </button>
+                        <button class="btn-secondary full-width" id="saveProjectBtn">
+                            <i class="fas fa-heart"></i>
+                            Sauvegarder le projet
+                        </button>
+                    <?php else: ?>
+                        <!-- Utilisateur NON connecté -->
+                        <button class="btn-primary full-width" onclick="location.href='login.php?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>'">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Se connecter pour participer
+                        </button>
+                        <p class="info-text">Vous devez être connecté pour participer à ce projet.</p>
+                    <?php endif; ?>
                 <?php elseif ($availability === 'complet'): ?>
                     <button class="btn-secondary full-width" disabled>
                         <i class="fas fa-users"></i>
@@ -441,11 +468,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedTasks = [];
 
     // Ouvrir la modal des tâches
-    participateBtn.addEventListener('click', function() {
-        taskModal.style.display = 'flex';
-        selectedTasks = [];
-        updateSelectedTasksUI();
-    });
+    if (participateBtn) {
+        participateBtn.addEventListener('click', function() {
+            taskModal.style.display = 'flex';
+            selectedTasks = [];
+            updateSelectedTasksUI();
+        });
+    }
 
     // Fermer la modal des tâches
     closeTaskModal.addEventListener('click', closeTaskModalFunc);
