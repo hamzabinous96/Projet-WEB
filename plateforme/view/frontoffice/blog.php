@@ -1,7 +1,6 @@
 <?php
-// ===========================================
 // CONNEXION BDD
-// ===========================================
+
 try {
     $pdo = new PDO(
         'mysql:host=localhost;dbname=weconnect;charset=utf8',
@@ -13,9 +12,9 @@ try {
     die('Erreur de connexion : ' . $e->getMessage());
 }
 
-// ===========================================
-// RÉCUPÉRATION DES ARTICLES PUBLIÉS
-// ===========================================
+
+// RÉCUPÉRATION DES ARTICLES PUBLIÉS selon leur category
+
 $stmt = $pdo->query("
     SELECT b.*, c.nom_categorie 
     FROM blogs b
@@ -25,15 +24,15 @@ $stmt = $pdo->query("
 ");
 $articles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ===========================================
+
 // RÉCUPÉRATION DES CATÉGORIES
-// ===========================================
+
 $stmt_cat = $pdo->query("SELECT * FROM categories ORDER BY nom_categorie");
 $categories = $stmt_cat->fetchAll(PDO::FETCH_ASSOC);
 
-// ===========================================
+
 // ARTICLES RÉCENTS (3 derniers)
-// ===========================================
+
 $stmt_recent = $pdo->query("
     SELECT b.*, c.nom_categorie 
     FROM blogs b
@@ -44,7 +43,7 @@ $stmt_recent = $pdo->query("
 ");
 $articles_recents = $stmt_recent->fetchAll(PDO::FETCH_ASSOC);
 
-// Fonction pour tronquer le texte
+// Fonction pour tronquer le texte si trop long
 function tronquer($texte, $longueur = 100) {
     if (strlen($texte) > $longueur) {
         return substr($texte, 0, $longueur) . '...';
@@ -90,7 +89,7 @@ $badge_colors = [
 
 <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
     <div class="container">
-      <a class="navbar-brand" href="#">WeConnect</a>
+        <a class="navbar-brand" href="#"></i>WeConnect</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -304,11 +303,25 @@ $badge_colors = [
 
 <!-- Script bouton -->
 <script>
-document.getElementById('joinBtn').addEventListener('click', ()=>window.location.href='inscription.html');
-document.getElementById('sidebarJoinBtn').addEventListener('click', ()=>window.location.href='inscription.html');
-document.getElementById('subscribeBtn').addEventListener('click', ()=>{
-    const email = document.getElementById('newsletterEmail').value;
-    if(email) alert(`Merci ! Vous êtes maintenant abonné avec l'email: ${email}`);
+document.addEventListener('DOMContentLoaded', function() {
+    const joinBtn = document.getElementById('joinBtn');
+    const sidebarJoinBtn = document.getElementById('sidebarJoinBtn');
+    const subscribeBtn = document.getElementById('subscribeBtn');
+    
+    if (sidebarJoinBtn) {
+        sidebarJoinBtn.addEventListener('click', () => window.location.href = 'inscription.html');
+    }
+    
+    if (subscribeBtn) {
+        subscribeBtn.addEventListener('click', () => {
+            const email = document.getElementById('newsletterEmail').value.trim();
+            if (email) {
+                alert(`Merci ! Vous êtes maintenant abonné avec l'email: ${email}`);
+            } else {
+                alert('Veuillez entrer votre email');
+            }
+        });
+    }
 });
 </script>
 

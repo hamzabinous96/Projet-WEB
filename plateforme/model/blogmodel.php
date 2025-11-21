@@ -1,4 +1,5 @@
 <?php
+// récupérer les données nécessaires au blog//
 require_once 'config/database.php';
 
 class BlogModel {

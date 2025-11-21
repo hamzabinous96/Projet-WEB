@@ -1,4 +1,5 @@
 <?php
+//intermédiaire entre la base de données (modèle) et les pages HTML//
 require_once 'model/BlogModel.php';
 
 class BlogController {

@@ -39,6 +39,171 @@ try {
     die('Erreur : ' . $e->getMessage());
 }
 
+// ===========================================
+// TRAITEMENT DU FORMULAIRE DE COMMENTAIRE
+// ===========================================if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // ===========================================
+// TRAITEMENT DU FORMULAIRE DE COMMENTAIRE
+// ===========================================
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Commentaire principal
+    if (isset($_POST['submit_comment'])) {
+        $nom = htmlspecialchars(trim($_POST['name']));
+        $email = htmlspecialchars(trim($_POST['email']));
+        $comment_text = htmlspecialchars(trim($_POST['comment']));
+        
+        // Validation des champs obligatoires
+        if (empty($nom) || empty($comment_text)) {
+            $error_message = "Erreur : Le nom et le commentaire sont obligatoires.";
+        } 
+        // Validation de l'email si fourni
+        else if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error_message = "Erreur : Format d'email invalide.";
+        }
+        else {
+            try {
+                // Préparation de la requête d'insertion avec modération
+                $sql = "INSERT INTO commentaires (
+                    id_blog, 
+                    auteur_comment, 
+                    contenu_comment, 
+                    date_creation_comment,
+                    est_approuve
+                ) VALUES (
+                    :id_blog, 
+                    :auteur, 
+                    :contenu, 
+                    NOW(),
+                    1
+                )";
+                
+                $stmt = $pdo->prepare($sql);
+                
+                // Liaison des paramètres
+                $stmt->bindParam(':id_blog', $article_id, PDO::PARAM_INT);
+                $stmt->bindParam(':auteur', $nom, PDO::PARAM_STR);
+                $stmt->bindParam(':contenu', $comment_text, PDO::PARAM_STR);
+                
+                // Exécution de la requête
+                if ($stmt->execute()) {
+                    // REDIRECTION POUR ÉVITER LA RE-SOUMISSION
+                    header("Location: ?id=" . $article_id . "&success=1");
+                    exit;
+                } else {
+                    $error_message = "Erreur lors de la publication du commentaire.";
+                }
+                
+            } catch(PDOException $e) {
+                $error_message = "Erreur d'insertion : " . $e->getMessage();
+            }
+        }
+    }
+    
+    // Réponse à un commentaire
+    if (isset($_POST['submit_reply'])) {
+        $reply_nom = htmlspecialchars(trim($_POST['reply_name']));
+        $reply_comment_text = htmlspecialchars(trim($_POST['reply_comment']));
+        $parent_id = intval($_POST['parent_id']);
+        
+        if (empty($reply_nom) || empty($reply_comment_text)) {
+            $error_message = "Erreur : Le nom et la réponse sont obligatoires.";
+        } else {
+            try {
+                $sql = "INSERT INTO commentaires (
+                    id_blog, 
+                    auteur_comment, 
+                    contenu_comment, 
+                    date_creation_comment,
+                    parent_id,
+                    est_approuve
+                ) VALUES (
+                    :id_blog, 
+                    :auteur, 
+                    :contenu, 
+                    NOW(),
+                    :parent_id,
+                    1
+                )";
+                
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindParam(':id_blog', $article_id, PDO::PARAM_INT);
+                $stmt->bindParam(':auteur', $reply_nom, PDO::PARAM_STR);
+                $stmt->bindParam(':contenu', $reply_comment_text, PDO::PARAM_STR);
+                $stmt->bindParam(':parent_id', $parent_id, PDO::PARAM_INT);
+                
+                if ($stmt->execute()) {
+                    // REDIRECTION POUR ÉVITER LA RE-SOUMISSION
+                    header("Location: ?id=" . $article_id . "&success=1");
+                    exit;
+                }
+                
+            } catch(PDOException $e) {
+                $error_message = "Erreur d'insertion de la réponse : " . $e->getMessage();
+            }
+        }
+    }
+}
+
+// ===========================================
+// AFFICHAGE DU MESSAGE DE SUCCÈS APRÈS REDIRECTION
+// ===========================================
+if (isset($_GET['success']) && $_GET['success'] == 1) {
+    $success_message = "Votre commentaire a été publié avec succès !";
+}
+
+
+// ===========================================
+// PAGINATION ET RÉCUPÉRATION DES COMMENTAIRES - VERSION CORRIGÉE
+// ===========================================
+$comments_per_page = 5;
+$current_page = $_GET['page'] ?? 1;
+$offset = ($current_page - 1) * $comments_per_page;
+
+try {
+    // VÉRIFIER SI LES NOUVEAUX CHAMPS EXISTENT
+    $test_columns = $pdo->query("SHOW COLUMNS FROM commentaires LIKE 'est_approuve'")->fetch();
+    
+    if ($test_columns) {
+        // AVEC les nouveaux champs
+        $count_sql = "SELECT COUNT(*) as total FROM commentaires WHERE id_blog = ? AND (parent_id IS NULL OR parent_id = 0) AND est_approuve = 1";
+        $select_sql = "SELECT id_commentaire, auteur_comment, contenu_comment, date_creation_comment FROM commentaires WHERE id_blog = ? AND (parent_id IS NULL OR parent_id = 0) AND est_approuve = 1 ORDER BY date_creation_comment DESC LIMIT ? OFFSET ?";
+    } else {
+        // SANS les nouveaux champs (version simple)
+        $count_sql = "SELECT COUNT(*) as total FROM commentaires WHERE id_blog = ?";
+        $select_sql = "SELECT id_commentaire, auteur_comment, contenu_comment, date_creation_comment FROM commentaires WHERE id_blog = ? ORDER BY date_creation_comment DESC LIMIT ? OFFSET ?";
+    }
+    
+    // Compter le nombre total de commentaires
+    $stmt_count = $pdo->prepare($count_sql);
+    $stmt_count->execute([$article_id]);
+    $total_comments = $stmt_count->fetch(PDO::FETCH_ASSOC)['total'];
+    $total_pages = ceil($total_comments / $comments_per_page);
+    
+    // Corriger la page actuelle si elle dépasse le total
+    if ($current_page > $total_pages && $total_pages > 0) {
+        $current_page = 1;
+        $offset = 0;
+    }
+    
+    // Récupérer les commentaires parents AVEC PAGINATION
+    $stmt_parents = $pdo->prepare($select_sql);
+    $stmt_parents->bindValue(1, $article_id, PDO::PARAM_INT);
+    $stmt_parents->bindValue(2, $comments_per_page, PDO::PARAM_INT);
+    $stmt_parents->bindValue(3, $offset, PDO::PARAM_INT);
+    $stmt_parents->execute();
+    
+    $commentaires_parents = $stmt_parents->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Récupérer les réponses (version simplifiée)
+    $replies_by_parent = [];
+    
+} catch(PDOException $e) {
+    $commentaires_parents = [];
+    $replies_by_parent = [];
+    $total_pages = 1;
+    $total_comments = 0;
+}
+
 // Fonction pour formater la date en français
 function dateEnFrancais($date) {
     $mois = [
@@ -51,6 +216,79 @@ function dateEnFrancais($date) {
     $moisNum = date('n', $timestamp);
     $annee = date('Y', $timestamp);
     return $jour . ' ' . $mois[$moisNum] . ' ' . $annee;
+}
+
+// Fonction pour formater la date relative (il y a...)
+function dateRelative($date) {
+    $now = new DateTime();
+    $dateComment = new DateTime($date);
+    $interval = $now->diff($dateComment);
+    
+    if ($interval->y > 0) {
+        return "Il y a " . $interval->y . " an" . ($interval->y > 1 ? "s" : "");
+    } elseif ($interval->m > 0) {
+        return "Il y a " . $interval->m . " mois";
+    } elseif ($interval->d > 0) {
+        return "Il y a " . $interval->d . " jour" . ($interval->d > 1 ? "s" : "");
+    } elseif ($interval->h > 0) {
+        return "Il y a " . $interval->h . " heure" . ($interval->h > 1 ? "s" : "");
+    } elseif ($interval->i > 0) {
+        return "Il y a " . $interval->i . " minute" . ($interval->i > 1 ? "s" : "");
+    } else {
+        return "À l'instant";
+    }
+}
+
+// Fonction récursive pour afficher les commentaires et réponses
+function displayComment($comment, $replies_by_parent, $level = 0) {
+    $margin = $level * 30;
+    $border_color = $level == 0 ? 'var(--primary-color)' : '#dee2e6';
+    ?>
+    <div class="comment-item mb-3 p-3 bg-light rounded" style="margin-left: <?= $margin ?>px; border-left: 3px solid <?= $border_color ?>">
+        <div class="d-flex justify-content-between mb-2">
+            <strong><?= htmlspecialchars($comment['auteur_comment']) ?></strong>
+            <small class="text-muted"><?= dateRelative($comment['date_creation_comment']) ?></small>
+        </div>
+        <p class="mb-2"><?= nl2br(htmlspecialchars($comment['contenu_comment'])) ?></p>
+        
+        <!-- Bouton Répondre -->
+        <button class="btn btn-sm btn-outline-primary reply-btn" 
+                data-comment-id="<?= $comment['id_commentaire'] ?>" 
+                data-comment-author="<?= htmlspecialchars($comment['auteur_comment']) ?>">
+            <i class="fas fa-reply me-1"></i>Répondre
+        </button>
+        
+        <!-- Formulaire de réponse (caché par défaut) -->
+        <div class="reply-form mt-3" id="reply-form-<?= $comment['id_commentaire'] ?>" style="display: none;">
+            <form method="POST" class="row g-2">
+                <input type="hidden" name="parent_id" value="<?= $comment['id_commentaire'] ?>">
+                <div class="col-md-6">
+                    <input type="text" name="reply_name" class="form-control form-control-sm" placeholder="Votre nom" required>
+                </div>
+                <div class="col-12">
+                    <textarea name="reply_comment" class="form-control form-control-sm" rows="2" placeholder="Votre réponse..." required></textarea>
+                </div>
+                <div class="col-12">
+                    <button type="submit" name="submit_reply" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-paper-plane me-1"></i>Publier la réponse
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm cancel-reply">
+                        Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Afficher les réponses -->
+        <?php if (isset($replies_by_parent[$comment['id_commentaire']])): ?>
+            <div class="replies mt-3">
+                <?php foreach ($replies_by_parent[$comment['id_commentaire']] as $reply): ?>
+                    <?php displayComment($reply, $replies_by_parent, $level + 1); ?>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php
 }
 ?>
 <!DOCTYPE html>
@@ -154,8 +392,23 @@ function dateEnFrancais($date) {
             margin-bottom: 1.5rem;
         }
         .comment-item {
-            border-left: 3px solid var(--primary-color);
-            padding-left: 15px;
+            transition: all 0.3s ease;
+        }
+        .comment-item:hover {
+            background: #f8f9fa !important;
+        }
+        .reply-form {
+            background: rgba(147, 197, 114, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid var(--secondary-color);
+        }
+        .pagination .page-link {
+            color: var(--primary-color);
+        }
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
     </style>
 </head>
@@ -194,7 +447,9 @@ function dateEnFrancais($date) {
 
             
             <div class="p-5">
-                
+
+
+
                 <!-- En-tête de l'article -->
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
@@ -235,7 +490,7 @@ function dateEnFrancais($date) {
                 </div>
 
                 <!-- =========================================== -->
-                <!-- SECTION COMMENTAIRES -->
+                <!-- SECTION COMMENTAIRES AVANCÉE -->
                 <!-- =========================================== -->
                 <section class="mt-5">
                     <h4 class="h5 fw-bold mb-3">Laissez un commentaire</h4>
@@ -243,49 +498,101 @@ function dateEnFrancais($date) {
                         <i class="fas fa-info-circle me-1"></i>
                         Ton retour nous intéresse — reste poli et constructif.
                     </p>
+
+                    <!-- Messages d'alerte -->
+                    <?php if (isset($success_message)): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <?= $success_message ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (isset($error_message)): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <?= $error_message ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
                     
-                    <form id="commentForm" class="row g-3 mb-4">
+                    <!-- Formulaire principal de commentaire -->
+                    <form id="commentForm" method="POST" class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label for="name" class="form-label">Nom *</label>
-                            <input type="text" id="name" class="form-control" placeholder="Votre nom" required>
+                            <input type="text" id="name" name="name" class="form-control" 
+                                   placeholder="Votre nom" value="<?= isset($nom) ? htmlspecialchars($nom) : '' ?>" required>
                         </div>
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email (optionnel)</label>
-                            <input type="email" id="email" class="form-control" placeholder="Votre email">
+                            <input type="email" id="email" name="email" class="form-control" 
+                                   placeholder="Votre email" value="<?= isset($email) ? htmlspecialchars($email) : '' ?>">
                         </div>
                         <div class="col-12">
                             <label for="comment" class="form-label">Commentaire *</label>
-                            <textarea id="comment" class="form-control" rows="4" 
-                                      placeholder="Partagez vos pensées..." required></textarea>
+                            <textarea id="comment" name="comment" class="form-control" rows="4" 
+                                      placeholder="Partagez vos pensées..." required><?= isset($comment_text) ? htmlspecialchars($comment_text) : '' ?></textarea>
                         </div>
                         <div class="col-12 d-flex justify-content-between align-items-center">
                             <small class="text-muted">
                                 En soumettant, vous acceptez nos 
                                 <a href="#" class="text-decoration-none">conditions d'utilisation</a>.
                             </small>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" name="submit_comment" class="btn btn-primary">
                                 <i class="fas fa-paper-plane me-1"></i>Publier
                             </button>
                         </div>
                     </form>
 
-                    <!-- Liste des commentaires -->
+                    <!-- Liste des commentaires avec pagination -->
                     <div id="commentsList" class="mt-4">
-                        <div class="comment-item mb-3 p-3 bg-light rounded">
-                            <div class="d-flex justify-content-between mb-2">
-                                <strong>Marie L.</strong>
-                                <small class="text-muted">Il y a 2 jours</small>
+                        <?php if (!empty($commentaires_parents)): ?>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0"><?= $total_comments ?> commentaire(s)</h5>
+                                <?php if ($total_pages > 1): ?>
+                                    <small class="text-muted">Page <?= $current_page ?> sur <?= $total_pages ?></small>
+                                <?php endif; ?>
                             </div>
-                            <p class="mb-0">Très bel article ! Merci pour ce partage inspirant.</p>
-                        </div>
-                        
-                        <div class="comment-item mb-3 p-3 bg-light rounded">
-                            <div class="d-flex justify-content-between mb-2">
-                                <strong>Jean D.</strong>
-                                <small class="text-muted">Il y a 1 semaine</small>
+                            
+                            <?php foreach ($commentaires_parents as $comment): ?>
+                                <?php displayComment($comment, $replies_by_parent); ?>
+                            <?php endforeach; ?>
+                            
+                            <!-- Pagination -->
+                            <?php if ($total_pages > 1): ?>
+                                <nav aria-label="Pagination des commentaires">
+                                    <ul class="pagination justify-content-center mt-4">
+                                        <?php if ($current_page > 1): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?id=<?= $article_id ?>&page=<?= $current_page - 1 ?>">
+                                                    <i class="fas fa-chevron-left me-1"></i>Précédent
+                                                </a>
+                                            </li>
+                                        <?php endif; ?>
+                                        
+                                        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                            <li class="page-item <?= $i == $current_page ? 'active' : '' ?>">
+                                                <a class="page-link" href="?id=<?= $article_id ?>&page=<?= $i ?>"><?= $i ?></a>
+                                            </li>
+                                        <?php endfor; ?>
+                                        
+                                        <?php if ($current_page < $total_pages): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?id=<?= $article_id ?>&page=<?= $current_page + 1 ?>">
+                                                    Suivant<i class="fas fa-chevron-right ms-1"></i>
+                                                </a>
+                                            </li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </nav>
+                            <?php endif; ?>
+                            
+                        <?php else: ?>
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-comments fa-2x mb-2"></i>
+                                <p>Aucun commentaire pour le moment. Soyez le premier à commenter !</p>
                             </div>
-                            <p class="mb-0">Je partage totalement cette vision de la solidarité numérique.</p>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </section>
 
@@ -321,60 +628,6 @@ function dateEnFrancais($date) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Gestion des commentaires
-document.getElementById('commentForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    
-    const name = document.getElementById('name').value.trim();
-    const comment = document.getElementById('comment').value.trim();
-    
-    if(!name || !comment) {
-        alert('Veuillez remplir tous les champs obligatoires.');
-        return;
-    }
-
-    // Créer le nouveau commentaire
-    const container = document.createElement('div');
-    container.className = 'comment-item mb-3 p-3 bg-light rounded';
-    container.innerHTML = `
-        <div class="d-flex justify-content-between mb-2">
-            <strong>${escapeHtml(name)}</strong>
-            <small class="text-muted">À l'instant</small>
-        </div>
-        <p class="mb-0">${escapeHtml(comment)}</p>
-    `;
-    
-    // Ajouter en haut de la liste
-    document.getElementById('commentsList').prepend(container);
-    
-    // Réinitialiser le formulaire
-    document.getElementById('commentForm').reset();
-    
-    // Message de confirmation
-    showNotification('Commentaire publié avec succès !');
-});
-
-// Fonction d'échappement HTML
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-// Fonction de notification
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
-    notification.style.zIndex = '1060';
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
 // Animation d'apparition du contenu
 document.addEventListener('DOMContentLoaded', function() {
     const content = document.querySelector('.article-content');
@@ -388,6 +641,43 @@ document.addEventListener('DOMContentLoaded', function() {
             content.style.transform = 'translateY(0)';
         }, 300);
     }
+    
+    // Gestion des boutons "Répondre"
+    document.querySelectorAll('.reply-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.getAttribute('data-comment-id');
+            const replyForm = document.getElementById('reply-form-' + commentId);
+            
+            // Masquer tous les autres formulaires de réponse
+            document.querySelectorAll('.reply-form').forEach(form => {
+                if (form.id !== 'reply-form-' + commentId) {
+                    form.style.display = 'none';
+                }
+            });
+            
+            // Afficher/masquer le formulaire actuel
+            if (replyForm.style.display === 'none') {
+                replyForm.style.display = 'block';
+                // Pré-remplir le nom si possible
+                const replyNameInput = replyForm.querySelector('input[name="reply_name"]');
+                if (replyNameInput && !replyNameInput.value) {
+                    const mainNameInput = document.getElementById('name');
+                    if (mainNameInput && mainNameInput.value) {
+                        replyNameInput.value = mainNameInput.value;
+                    }
+                }
+            } else {
+                replyForm.style.display = 'none';
+            }
+        });
+    });
+    
+    // Gestion des boutons "Annuler"
+    document.querySelectorAll('.cancel-reply').forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('.reply-form').style.display = 'none';
+        });
+    });
 });
 </script>
 
