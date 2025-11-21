@@ -27,7 +27,7 @@ class ProjectController {
         return $this->projectModel->getProjectById($id);
     }
     
-    public function addProject($titre, $association, $lieu, $date_debut, $date_fin, $disponibilite, $descriptionp, $categorie, $created_by) {
+    public function addProject($titre, $association, $lieu, $date_debut, $date_fin, $disponibilite, $description, $categorie, $created_by) {
         if (empty($titre) || empty($association) || empty($created_by)) {
             return "Erreur: Titre, association et créateur sont obligatoires";
         }
@@ -40,20 +40,24 @@ class ProjectController {
             return "Erreur: L'association spécifiée n'existe pas";
         }
         
-        if (!$this->isValidAdmin($created_by)) {
-            return "Erreur: L'administrateur créateur n'existe pas";
+        if (!$this->isValidUser($created_by)) {
+            return "Erreur: L'utilisateur créateur n'existe pas";
         }
         
         return $this->projectModel->addProject(
             $titre, $association, $lieu, $date_debut, $date_fin, 
-            $disponibilite, $descriptionp, $categorie, $created_by
+            $disponibilite, $description, $categorie, $created_by
         );
     }
 
     public function getTasksByProject($projectId) {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT * FROM taches WHERE id_projet = ?";
+            $sql = "SELECT t.*, u.first_name, u.last_name 
+                    FROM taches t 
+                    LEFT JOIN users u ON t.assignee = u.id 
+                    WHERE t.id_projet = ? 
+                    ORDER BY t.id_tache ASC";
             $stmt = $db->prepare($sql);
             $stmt->execute([$projectId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -75,7 +79,7 @@ class ProjectController {
         }
     }
 
-    public function updateProject($id, $titre, $association, $lieu, $date_debut, $date_fin, $disponibilite, $descriptionp, $categorie, $created_by) {
+    public function updateProject($id, $titre, $association, $lieu, $date_debut, $date_fin, $disponibilite, $description, $categorie, $created_by) {
         if (empty($id) || empty($titre) || empty($association) || empty($created_by)) {
             return "Erreur: ID, titre, association et créateur sont obligatoires";
         }
@@ -93,13 +97,13 @@ class ProjectController {
             return "Erreur: L'association spécifiée n'existe pas";
         }
         
-        if (!$this->isValidAdmin($created_by)) {
-            return "Erreur: L'administrateur créateur n'existe pas";
+        if (!$this->isValidUser($created_by)) {
+            return "Erreur: L'utilisateur créateur n'existe pas";
         }
         
         return $this->projectModel->updateProject(
             $id, $titre, $association, $lieu, $date_debut, $date_fin, 
-            $disponibilite, $descriptionp, $categorie, $created_by
+            $disponibilite, $description, $categorie, $created_by
         );
     }
     
@@ -182,7 +186,7 @@ class ProjectController {
         
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT COUNT(*) as count FROM participation WHERE id_projet = ?";
+            $sql = "SELECT COUNT(DISTINCT assignee) as count FROM taches WHERE id_projet = ? AND assignee IS NOT NULL";
             $stmt = $db->prepare($sql);
             $stmt->execute([$project_id]);
             $result = $stmt->fetch();
@@ -196,7 +200,7 @@ class ProjectController {
     public function getTotalParticipants() {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT COUNT(*) as total FROM participation";
+            $sql = "SELECT COUNT(DISTINCT assignee) as total FROM taches WHERE assignee IS NOT NULL";
             $stmt = $db->prepare($sql);
             $stmt->execute();
             $result = $stmt->fetch();
@@ -212,7 +216,7 @@ class ProjectController {
             $db = Config::getConnexion();
             $sql = "SELECT disponibilite, COUNT(*) as count 
                     FROM projets 
-                    WHERE disponibilite IN ('disponible', 'complet', 'termine') 
+                    WHERE disponibilite IS NOT NULL 
                     GROUP BY disponibilite";
             $stmt = $db->prepare($sql);
             $stmt->execute();
@@ -223,18 +227,10 @@ class ProjectController {
                 $stats[$row['disponibilite']] = $row['count'];
             }
             
-            $stats['disponible'] = $stats['disponible'] ?? 0;
-            $stats['complet'] = $stats['complet'] ?? 0;
-            $stats['termine'] = $stats['termine'] ?? 0;
-            
             return $stats;
         } catch (PDOException $e) {
             error_log("Error fetching projects by availability: " . $e->getMessage());
-            return [
-                'disponible' => 0,
-                'complet' => 0,
-                'termine' => 0
-            ];
+            return [];
         }
     }
     
@@ -254,29 +250,17 @@ class ProjectController {
                 $stats[$row['categorie']] = $row['count'];
             }
             
-            $mainCategories = ['Solidarité', 'Environement', 'Education', 'Sante', 'Aide', 'Culture'];
-            foreach ($mainCategories as $category) {
-                $stats[$category] = $stats[$category] ?? 0;
-            }
-            
             return $stats;
         } catch (PDOException $e) {
             error_log("Error fetching projects by category stats: " . $e->getMessage());
-            return [
-                'Solidarité' => 0,
-                'Environement' => 0,
-                'Education' => 0,
-                'Sante' => 0,
-                'Aide' => 0,
-                'Culture' => 0
-            ];
+            return [];
         }
     }
     
     private function isValidAssociation($association_id) {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT id FROM utilisateurs WHERE id = ? AND type = 'association'";
+            $sql = "SELECT id FROM users WHERE id = ? AND user_type = 'association'";
             $stmt = $db->prepare($sql);
             $stmt->execute([$association_id]);
             return $stmt->rowCount() > 0;
@@ -286,15 +270,15 @@ class ProjectController {
         }
     }
     
-    private function isValidAdmin($admin_id) {
+    private function isValidUser($user_id) {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT id FROM admin WHERE id = ?";
+            $sql = "SELECT id FROM users WHERE id = ?";
             $stmt = $db->prepare($sql);
-            $stmt->execute([$admin_id]);
+            $stmt->execute([$user_id]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error validating admin: " . $e->getMessage());
+            error_log("Error validating user: " . $e->getMessage());
             return false;
         }
     }
@@ -302,7 +286,7 @@ class ProjectController {
     public function getAssociations() {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT id, nom, email FROM utilisateurs WHERE type = 'association' ORDER BY nom";
+            $sql = "SELECT id, first_name, last_name, email FROM users WHERE user_type = 'association' ORDER BY first_name, last_name";
             $stmt = $db->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -312,15 +296,15 @@ class ProjectController {
         }
     }
     
-    public function getAdmins() {
+    public function getUsers() {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT id, nom, email FROM admin ORDER BY nom";
+            $sql = "SELECT id, first_name, last_name, email, user_type FROM users ORDER BY first_name, last_name";
             $stmt = $db->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Error fetching admins: " . $e->getMessage());
+            error_log("Error fetching users: " . $e->getMessage());
             return [];
         }
     }
@@ -332,15 +316,14 @@ class ProjectController {
         
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom, a.nom as admin_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
-                    JOIN admin a ON p.created_by = a.id 
-                    WHERE p.titre LIKE ? OR p.descriptionp LIKE ? OR p.lieu LIKE ? OR u.nom LIKE ?
+                    JOIN users u ON p.association = u.id 
+                    WHERE p.titre LIKE ? OR p.description LIKE ? OR p.lieu LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ?
                     ORDER BY p.date_debut DESC";
             $stmt = $db->prepare($sql);
             $search_pattern = "%" . $search_term . "%";
-            $stmt->execute([$search_pattern, $search_pattern, $search_pattern, $search_pattern]);
+            $stmt->execute([$search_pattern, $search_pattern, $search_pattern, $search_pattern, $search_pattern]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error searching projects: " . $e->getMessage());
@@ -374,77 +357,51 @@ class ProjectController {
         }
     }
     
-    public function addParticipation($user_id, $project_id, $admin_id) {
-        if (empty($user_id) || empty($project_id) || empty($admin_id)) {
-            return "Erreur: ID utilisateur, ID projet et ID admin sont obligatoires";
-        }
-        
-        if (!$this->isValidUser($user_id)) {
-            return "Erreur: L'utilisateur spécifié n'existe pas";
-        }
-        
-        if (!$this->projectModel->getProjectById($project_id)) {
-            return "Erreur: Le projet spécifié n'existe pas";
-        }
-        
-        if (!$this->isValidAdmin($admin_id)) {
-            return "Erreur: L'administrateur spécifié n'existe pas";
-        }
-        
-        if ($this->isUserParticipating($user_id, $project_id)) {
-            return "Erreur: L'utilisateur participe déjà à ce projet";
+    public function assignUserToTask($user_id, $task_id) {
+        if (empty($user_id) || empty($task_id)) {
+            return false;
         }
         
         try {
             $db = Config::getConnexion();
-            $sql = "INSERT INTO participation (id_participant, id_projet, created_by) VALUES (?, ?, ?)";
+            $sql = "UPDATE taches SET assignee = ? WHERE id_tache = ?";
             $stmt = $db->prepare($sql);
-            $result = $stmt->execute([$user_id, $project_id, $admin_id]);
-            
-            return $result ? true : "Erreur lors de l'ajout de la participation";
+            return $stmt->execute([$user_id, $task_id]);
         } catch (PDOException $e) {
-            return "DATABASE_ERROR: " . $e->getMessage();
+            error_log("Error assigning user to task: " . $e->getMessage());
+            return false;
         }
     }
     
-    public function removeParticipation($user_id, $project_id) {
+    public function removeUserFromTask($task_id) {
+        if (empty($task_id)) {
+            return false;
+        }
+        
+        try {
+            $db = Config::getConnexion();
+            $sql = "UPDATE taches SET assignee = NULL WHERE id_tache = ?";
+            $stmt = $db->prepare($sql);
+            return $stmt->execute([$task_id]);
+        } catch (PDOException $e) {
+            error_log("Error removing user from task: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function isUserAssignedToProject($user_id, $project_id) {
         if (empty($user_id) || empty($project_id)) {
             return false;
         }
         
         try {
             $db = Config::getConnexion();
-            $sql = "DELETE FROM participation WHERE id_participant = ? AND id_projet = ?";
+            $sql = "SELECT id_tache FROM taches WHERE id_projet = ? AND assignee = ? LIMIT 1";
             $stmt = $db->prepare($sql);
-            return $stmt->execute([$user_id, $project_id]);
-        } catch (PDOException $e) {
-            error_log("Error removing participation: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    private function isUserParticipating($user_id, $project_id) {
-        try {
-            $db = Config::getConnexion();
-            $sql = "SELECT id_participant FROM participation WHERE id_participant = ? AND id_projet = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$user_id, $project_id]);
+            $stmt->execute([$project_id, $user_id]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error checking participation: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    private function isValidUser($user_id) {
-        try {
-            $db = Config::getConnexion();
-            $sql = "SELECT id FROM utilisateurs WHERE id = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$user_id]);
-            return $stmt->rowCount() > 0;
-        } catch (PDOException $e) {
-            error_log("Error validating user: " . $e->getMessage());
+            error_log("Error checking user assignment: " . $e->getMessage());
             return false;
         }
     }
@@ -455,10 +412,9 @@ class ProjectController {
         try {
             $db = Config::getConnexion();
             
-            $sql = "SELECT p.*, u.nom as association_nom, a.nom as admin_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
-                    JOIN admin a ON p.created_by = a.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE 1=1";
             
             $params = [];
@@ -479,8 +435,9 @@ class ProjectController {
             }
             
             if (!empty($filters['search'])) {
-                $sql .= " AND (p.titre LIKE ? OR p.descriptionp LIKE ? OR u.nom LIKE ?)";
+                $sql .= " AND (p.titre LIKE ? OR p.description LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ?)";
                 $search_pattern = "%" . $filters['search'] . "%";
+                $params[] = $search_pattern;
                 $params[] = $search_pattern;
                 $params[] = $search_pattern;
                 $params[] = $search_pattern;
@@ -505,8 +462,7 @@ class ProjectController {
             
             $sql = "SELECT COUNT(*) as total 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
-                    JOIN admin a ON p.created_by = a.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE 1=1";
             
             $params = [];
@@ -527,8 +483,9 @@ class ProjectController {
             }
             
             if (!empty($filters['search'])) {
-                $sql .= " AND (p.titre LIKE ? OR p.descriptionp LIKE ? OR u.nom LIKE ?)";
+                $sql .= " AND (p.titre LIKE ? OR p.description LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ?)";
                 $search_pattern = "%" . $filters['search'] . "%";
+                $params[] = $search_pattern;
                 $params[] = $search_pattern;
                 $params[] = $search_pattern;
                 $params[] = $search_pattern;
@@ -547,9 +504,9 @@ class ProjectController {
     public function getExpiredProjects() {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE p.date_fin < CURDATE() 
                     ORDER BY p.date_fin DESC";
             $stmt = $db->prepare($sql);
@@ -564,9 +521,9 @@ class ProjectController {
     public function getUpcomingProjects() {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE p.date_debut > CURDATE() 
                     ORDER BY p.date_debut ASC";
             $stmt = $db->prepare($sql);
@@ -581,9 +538,9 @@ class ProjectController {
     public function getUrgentProjects($days = 7) {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE p.date_fin BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
                     AND p.disponibilite = 'disponible'
                     ORDER BY p.date_fin ASC";
@@ -596,66 +553,6 @@ class ProjectController {
         }
     }
     
-    public function saveProjectToFavorites($user_id, $project_id) {
-        if (empty($user_id) || empty($project_id)) {
-            return false;
-        }
-        
-        try {
-            $db = Config::getConnexion();
-            
-            $check_sql = "SELECT id FROM favoris WHERE id_utilisateur = ? AND id_projet = ?";
-            $check_stmt = $db->prepare($check_sql);
-            $check_stmt->execute([$user_id, $project_id]);
-            
-            if ($check_stmt->rowCount() > 0) {
-                return "Ce projet est déjà dans vos favoris";
-            }
-            
-            $sql = "INSERT INTO favoris (id_utilisateur, id_projet, date_ajout) VALUES (?, ?, NOW())";
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([$user_id, $project_id]);
-            
-            return $result ? true : "Erreur lors de l'ajout aux favoris";
-        } catch (PDOException $e) {
-            error_log("Error saving project to favorites: " . $e->getMessage());
-            return "Erreur de base de données: " . $e->getMessage();
-        }
-    }
-    
-    public function removeProjectFromFavorites($user_id, $project_id) {
-        if (empty($user_id) || empty($project_id)) {
-            return false;
-        }
-        
-        try {
-            $db = Config::getConnexion();
-            $sql = "DELETE FROM favoris WHERE id_utilisateur = ? AND id_projet = ?";
-            $stmt = $db->prepare($sql);
-            return $stmt->execute([$user_id, $project_id]);
-        } catch (PDOException $e) {
-            error_log("Error removing project from favorites: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    public function isProjectInFavorites($user_id, $project_id) {
-        if (empty($user_id) || empty($project_id)) {
-            return false;
-        }
-        
-        try {
-            $db = Config::getConnexion();
-            $sql = "SELECT id FROM favoris WHERE id_utilisateur = ? AND id_projet = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$user_id, $project_id]);
-            return $stmt->rowCount() > 0;
-        } catch (PDOException $e) {
-            error_log("Error checking favorites: " . $e->getMessage());
-            return false;
-        }
-    }
-
     public function getSimilarProjects($project_id, $limit = 3) {
         if (empty($project_id)) {
             return [];
@@ -670,9 +567,9 @@ class ProjectController {
             $category = $currentProject['categorie'];
             
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE p.categorie = ? AND p.id_projet != ? AND p.disponibilite = 'disponible'
                     ORDER BY p.date_debut DESC 
                     LIMIT ?";
@@ -692,11 +589,11 @@ class ProjectController {
         
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT u.id, u.nom, u.email, u.photo, p.date_participation 
-                    FROM participation p 
-                    JOIN utilisateurs u ON p.id_participant = u.id 
-                    WHERE p.id_projet = ? 
-                    ORDER BY p.date_participation DESC";
+            $sql = "SELECT DISTINCT u.id, u.first_name, u.last_name, u.email, u.profile_picture 
+                    FROM taches t 
+                    JOIN users u ON t.assignee = u.id 
+                    WHERE t.id_projet = ? AND t.assignee IS NOT NULL 
+                    ORDER BY u.first_name, u.last_name";
             $stmt = $db->prepare($sql);
             $stmt->execute([$project_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -729,23 +626,6 @@ class ProjectController {
         }
     }
 
-    public function isUserParticipatingInProject($user_id, $project_id) {
-        if (empty($user_id) || empty($project_id)) {
-            return false;
-        }
-        
-        try {
-            $db = Config::getConnexion();
-            $sql = "SELECT id_participant FROM participation WHERE id_participant = ? AND id_projet = ?";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$user_id, $project_id]);
-            return $stmt->rowCount() > 0;
-        } catch (PDOException $e) {
-            error_log("Error checking user participation: " . $e->getMessage());
-            return false;
-        }
-    }
-
     public function updateProjectAvailability($project_id, $availability) {
         if (empty($project_id) || empty($availability)) {
             return false;
@@ -764,20 +644,20 @@ class ProjectController {
         }
     }
 
-    public function getProjectsByCreator($admin_id) {
-        if (empty($admin_id)) {
+    public function getProjectsByCreator($user_id) {
+        if (empty($user_id)) {
             return [];
         }
         
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE p.created_by = ? 
                     ORDER BY p.date_debut DESC";
             $stmt = $db->prepare($sql);
-            $stmt->execute([$admin_id]);
+            $stmt->execute([$user_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error fetching projects by creator: " . $e->getMessage());
@@ -788,11 +668,11 @@ class ProjectController {
     public function getRecentProjects($limit = 5) {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE p.disponibilite = 'disponible'
-                    ORDER BY p.date_creation DESC 
+                    ORDER BY p.date_debut DESC 
                     LIMIT ?";
             $stmt = $db->prepare($sql);
             $stmt->execute([$limit]);
@@ -807,17 +687,17 @@ class ProjectController {
         try {
             $db = Config::getConnexion();
             
-            $sql = "SELECT p.*, u.nom as association_nom, a.nom as admin_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name 
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
-                    JOIN admin a ON p.created_by = a.id 
+                    JOIN users u ON p.association = u.id 
                     WHERE 1=1";
             
             $params = [];
             
             if (!empty($criteria['search'])) {
-                $sql .= " AND (p.titre LIKE ? OR p.descriptionp LIKE ? OR u.nom LIKE ?)";
+                $sql .= " AND (p.titre LIKE ? OR p.description LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ?)";
                 $search_pattern = "%" . $criteria['search'] . "%";
+                $params[] = $search_pattern;
                 $params[] = $search_pattern;
                 $params[] = $search_pattern;
                 $params[] = $search_pattern;
@@ -849,7 +729,8 @@ class ProjectController {
             }
             
             if (!empty($criteria['association'])) {
-                $sql .= " AND u.nom LIKE ?";
+                $sql .= " AND (u.first_name LIKE ? OR u.last_name LIKE ?)";
+                $params[] = "%" . $criteria['association'] . "%";
                 $params[] = "%" . $criteria['association'] . "%";
             }
             
@@ -864,14 +745,14 @@ class ProjectController {
         }
     }
 
-    // NOUVELLES MÉTHODES POUR LES DÉTAILS DES PROJETS
+    // MÉTHODES POUR LES DÉTAILS DES PROJETS
 
     public function getTachesByProject($projectId) {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT t.*, u.nom as assignee_nom 
+            $sql = "SELECT t.*, u.first_name, u.last_name 
                     FROM taches t 
-                    LEFT JOIN utilisateurs u ON t.assignee = u.id 
+                    LEFT JOIN users u ON t.assignee = u.id 
                     WHERE t.id_projet = ? 
                     ORDER BY t.id_tache ASC";
             $stmt = $db->prepare($sql);
@@ -883,23 +764,6 @@ class ProjectController {
         }
     }
 
-    public function getParticipantsByProject($projectId) {
-        try {
-            $db = Config::getConnexion();
-            $sql = "SELECT u.*, p.date_participation 
-                    FROM participation p 
-                    JOIN utilisateurs u ON p.id_participant = u.id 
-                    WHERE p.id_projet = ? AND u.type = 'participant' 
-                    ORDER BY p.date_participation DESC";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$projectId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error fetching participants by project: " . $e->getMessage());
-            return [];
-        }
-    }
-
     public function getProjectDetails($projectId) {
         if (empty($projectId)) {
             return null;
@@ -907,10 +771,10 @@ class ProjectController {
         
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT p.*, u.nom as association_nom, a.nom as admin_nom 
+            $sql = "SELECT p.*, u.first_name, u.last_name, u_assoc.first_name as assoc_first_name, u_assoc.last_name as assoc_last_name
                     FROM projets p 
-                    JOIN utilisateurs u ON p.association = u.id 
-                    JOIN admin a ON p.created_by = a.id 
+                    JOIN users u ON p.created_by = u.id 
+                    JOIN users u_assoc ON p.association = u_assoc.id 
                     WHERE p.id_projet = ?";
             $stmt = $db->prepare($sql);
             $stmt->execute([$projectId]);
@@ -929,7 +793,7 @@ class ProjectController {
         try {
             $db = Config::getConnexion();
             
-            // Nombre de participants
+            // Nombre de participants (utilisateurs assignés à des tâches)
             $participantsCount = $this->getParticipantsCount($projectId);
             
             // Nombre de tâches par statut
@@ -991,9 +855,9 @@ class ProjectController {
     public function getTacheById($taskId) {
         try {
             $db = Config::getConnexion();
-            $sql = "SELECT t.*, u.nom as assignee_nom 
+            $sql = "SELECT t.*, u.first_name, u.last_name 
                     FROM taches t 
-                    LEFT JOIN utilisateurs u ON t.assignee = u.id 
+                    LEFT JOIN users u ON t.assignee = u.id 
                     WHERE t.id_tache = ?";
             $stmt = $db->prepare($sql);
             $stmt->execute([$taskId]);
@@ -1001,6 +865,49 @@ class ProjectController {
         } catch (PDOException $e) {
             error_log("Error fetching task by ID: " . $e->getMessage());
             return null;
+        }
+    }
+
+    public function getUserTasks($user_id) {
+        try {
+            $db = Config::getConnexion();
+            $sql = "SELECT t.*, p.titre as project_titre, p.lieu as project_lieu
+                    FROM taches t 
+                    JOIN projets p ON t.id_projet = p.id_projet 
+                    WHERE t.assignee = ? 
+                    ORDER BY t.id_tache DESC";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$user_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching user tasks: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getProjectProgress($project_id) {
+        try {
+            $db = Config::getConnexion();
+            
+            // Calculer le pourcentage de tâches complétées
+            $sql = "SELECT 
+                        COUNT(*) as total_tasks,
+                        COUNT(CASE WHEN status = 'termine' THEN 1 END) as completed_tasks
+                    FROM taches 
+                    WHERE id_projet = ?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$project_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result && $result['total_tasks'] > 0) {
+                $progress = ($result['completed_tasks'] / $result['total_tasks']) * 100;
+                return round($progress, 2);
+            }
+            
+            return 0;
+        } catch (PDOException $e) {
+            error_log("Error calculating project progress: " . $e->getMessage());
+            return 0;
         }
     }
 }

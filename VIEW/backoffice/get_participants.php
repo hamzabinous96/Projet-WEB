@@ -4,23 +4,36 @@ require_once(__DIR__ . '/../../CONTROLLER/ProjectController.php');
 
 if (isset($_GET['project_id'])) {
     $projectController = new ProjectController();
-    $participants = $projectController->getParticipantsByProject($_GET['project_id']);
+    $projectId = $_GET['project_id'];
+    
+    // Utiliser la méthode qui existe pour récupérer les participants
+    $participants = $projectController->getProjectParticipants($projectId);
+    
+    if (empty($participants)) {
+        // Si getProjectParticipants ne retourne rien, utiliser getTasksByProject
+        $tasks = $projectController->getTasksByProject($projectId);
+        $participants = [];
+        
+        foreach ($tasks as $task) {
+            if (!empty($task['assignee']) && !empty($task['first_name'])) {
+                $participants[] = [
+                    'first_name' => $task['first_name'],
+                    'last_name' => $task['last_name'],
+                    'email' => $task['email'] ?? 'Non spécifié'
+                ];
+            }
+        }
+    }
     
     if (count($participants) > 0) {
-        echo '<ul class="participants-list">';
         foreach ($participants as $participant) {
-            echo '<li class="participant-item">';
-            echo '<div class="participant-header">';
-            echo '<span class="participant-name">' . htmlspecialchars($participant['nom']) . '</span>';
-            echo '<span class="participant-email">' . htmlspecialchars($participant['email']) . '</span>';
-            echo '</div>';
+            echo '<div class="participant-card">';
             echo '<div class="participant-info">';
-            echo 'Type: ' . htmlspecialchars($participant['type']) . ' | ';
-            echo 'Date d\'inscription: ' . htmlspecialchars($participant['date_inscription']);
+            echo '<strong>' . htmlspecialchars($participant['first_name'] . ' ' . $participant['last_name']) . '</strong>';
+            echo '<br><small>' . htmlspecialchars($participant['email']) . '</small>';
             echo '</div>';
-            echo '</li>';
+            echo '</div>';
         }
-        echo '</ul>';
     } else {
         echo '<div class="no-data">Aucun participant trouvé</div>';
     }

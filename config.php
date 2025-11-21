@@ -7,7 +7,7 @@ class config {
             $servername = "localhost";
             $username = "root";
             $password = ""; // ou "password" si c’est ton mot de passe MySQL
-            $dbname = "project_weconnect1"; // remplace par le nom réel de ta base
+            $dbname = "votre_base_de_donnees"; // remplace par le nom réel de ta base
 
             try {
                 self::$pdo = new PDO(

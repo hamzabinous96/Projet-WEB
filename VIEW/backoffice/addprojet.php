@@ -8,7 +8,7 @@ $message = "";
 $message_type = "";
 
 $associations = $projectController->getAssociations();
-$admins = $projectController->getAdmins();
+$users = $projectController->getUsers(); // Remplacé getAdmins() par getUsers()
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     // Nettoyage et validation des données
@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     $date_debut = $_POST['date_debut'] ?? '';
     $date_fin = $_POST['date_fin'] ?? '';
     $disponibilite = $_POST['disponibilite'] ?? '';
-    $descriptionp = trim($_POST['descriptionp'] ?? '');
+    $description = trim($_POST['description'] ?? ''); // Changé descriptionp en description
     $categorie = $_POST['categorie'] ?? '';
     $created_by = $_POST['created_by'] ?? '';
     $taches = $_POST['taches'] ?? [];
@@ -68,9 +68,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
         $errors[] = "La disponibilité sélectionnée n'est pas valide";
     }
 
-    if (empty($descriptionp)) {
+    if (empty($description)) {
         $errors[] = "La description est obligatoire";
-    } elseif (strlen($descriptionp) > 1000) {
+    } elseif (strlen($description) > 1000) {
         $errors[] = "La description ne doit pas dépasser 1000 caractères";
     }
 
@@ -81,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     }
 
     if (empty($created_by)) {
-        $errors[] = "Vous devez sélectionner un administrateur";
+        $errors[] = "Vous devez sélectionner un utilisateur";
     }
 
     // Validation des tâches
@@ -114,7 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     if (empty($errors)) {
         $result = $projectController->addProject(
             $titre, $association, $lieu, $date_debut, $date_fin, 
-            $disponibilite, $descriptionp, $categorie, $created_by
+            $disponibilite, $description, $categorie, $created_by
         );
         
         if ($result === true) {
@@ -192,6 +192,98 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
     .character-count.error {
       color: #dc3545;
     }
+
+    .no-associations {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .no-associations i {
+      color: #ffc107;
+    }
+
+    .tache-item {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .tache-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .tache-title {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .btn-remove-tache {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .btn-remove-tache:hover {
+      background: #c82333;
+    }
+
+    .btn-add-tache {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-add-tache:hover {
+      background: #218838;
+    }
+
+    .alert {
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+    }
+
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .alert i {
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -258,7 +350,7 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
                   <?php foreach($associations as $association): ?>
                     <option value="<?php echo $association['id']; ?>" 
                       <?php echo (isset($_POST['association']) && $_POST['association'] == $association['id']) ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($association['nom'] . ' (' . $association['email'] . ')'); ?>
+                      <?php echo htmlspecialchars($association['first_name'] . ' ' . $association['last_name'] . ' (' . $association['email'] . ')'); ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -309,10 +401,10 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
             </div>
             
             <div class="form-group">
-              <label for="descriptionp">Description *</label>
-              <textarea id="descriptionp" name="descriptionp" class="form-control" maxlength="1000" required><?php echo isset($_POST['descriptionp']) ? htmlspecialchars($_POST['descriptionp']) : ''; ?></textarea>
-              <div class="character-count" id="descriptionp-count">0/1000</div>
-              <span class="error-message" id="descriptionp-error"></span>
+              <label for="description">Description *</label>
+              <textarea id="description" name="description" class="form-control" maxlength="1000" required><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
+              <div class="character-count" id="description-count">0/1000</div>
+              <span class="error-message" id="description-error"></span>
             </div>
             
             <div class="form-group">
@@ -332,11 +424,11 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
             <div class="form-group">
               <label for="created_by">Créé par *</label>
               <select id="created_by" name="created_by" class="form-control" required>
-                <option value="">Sélectionner un administrateur</option>
-                <?php foreach($admins as $admin): ?>
-                  <option value="<?php echo $admin['id']; ?>"
-                    <?php echo (isset($_POST['created_by']) && $_POST['created_by'] == $admin['id']) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($admin['nom'] . ' (' . $admin['email'] . ')'); ?>
+                <option value="">Sélectionner un utilisateur</option>
+                <?php foreach($users as $user): ?>
+                  <option value="<?php echo $user['id']; ?>"
+                    <?php echo (isset($_POST['created_by']) && $_POST['created_by'] == $user['id']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name'] . ' (' . $user['email'] . ')'); ?>
                   </option>
                 <?php endforeach; ?>
               </select>
@@ -352,37 +444,39 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
               <div id="taches-container">
                 <?php if (isset($_POST['taches']) && is_array($_POST['taches'])): ?>
                   <?php foreach($_POST['taches'] as $index => $tache): ?>
-                    <div class="tache-item" data-index="<?php echo $index; ?>">
-                      <div class="tache-header">
-                        <span class="tache-title">Tâche #<?php echo $index + 1; ?></span>
-                        <button type="button" class="btn-remove-tache" onclick="removeTache(this)">
-                          <i class="fas fa-times"></i> Supprimer
-                        </button>
+                    <?php if (!empty(trim($tache['nom']))): ?>
+                      <div class="tache-item" data-index="<?php echo $index; ?>">
+                        <div class="tache-header">
+                          <span class="tache-title">Tâche #<?php echo $index + 1; ?></span>
+                          <button type="button" class="btn-remove-tache" onclick="removeTache(this)">
+                            <i class="fas fa-times"></i> Supprimer
+                          </button>
+                        </div>
+                        <div class="form-group">
+                          <label>Nom de la tâche</label>
+                          <input type="text" name="taches[<?php echo $index; ?>][nom]" class="form-control tache-nom" 
+                                 value="<?php echo htmlspecialchars($tache['nom'] ?? ''); ?>" maxlength="255">
+                          <div class="character-count tache-nom-count"><?php echo strlen($tache['nom'] ?? ''); ?>/255</div>
+                        </div>
+                        <div class="form-group">
+                          <label>Description</label>
+                          <textarea name="taches[<?php echo $index; ?>][description]" class="form-control tache-description" maxlength="500"><?php echo htmlspecialchars($tache['description'] ?? ''); ?></textarea>
+                          <div class="character-count tache-desc-count"><?php echo strlen($tache['description'] ?? ''); ?>/500</div>
+                        </div>
+                        <div class="form-group">
+                          <label>Assigné à</label>
+                          <select name="taches[<?php echo $index; ?>][assignee]" class="form-control">
+                            <option value="">Non assigné</option>
+                            <?php foreach($users as $user): ?>
+                              <option value="<?php echo $user['id']; ?>"
+                                <?php echo (isset($tache['assignee']) && $tache['assignee'] == $user['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                              </option>
+                            <?php endforeach; ?>
+                          </select>
+                        </div>
                       </div>
-                      <div class="form-group">
-                        <label>Nom de la tâche</label>
-                        <input type="text" name="taches[<?php echo $index; ?>][nom]" class="form-control tache-nom" 
-                               value="<?php echo htmlspecialchars($tache['nom'] ?? ''); ?>" maxlength="255">
-                        <div class="character-count"><?php echo strlen($tache['nom'] ?? ''); ?>/255</div>
-                      </div>
-                      <div class="form-group">
-                        <label>Description</label>
-                        <textarea name="taches[<?php echo $index; ?>][description]" class="form-control tache-description" maxlength="500"><?php echo htmlspecialchars($tache['description'] ?? ''); ?></textarea>
-                        <div class="character-count"><?php echo strlen($tache['description'] ?? ''); ?>/500</div>
-                      </div>
-                      <div class="form-group">
-                        <label>Assigné à</label>
-                        <select name="taches[<?php echo $index; ?>][assignee]" class="form-control">
-                          <option value="">Non assigné</option>
-                          <?php foreach($associations as $assoc): ?>
-                            <option value="<?php echo $assoc['id']; ?>"
-                              <?php echo (isset($tache['assignee']) && $tache['assignee'] == $assoc['id']) ? 'selected' : ''; ?>>
-                              <?php echo htmlspecialchars($assoc['nom']); ?>
-                            </option>
-                          <?php endforeach; ?>
-                        </select>
-                      </div>
-                    </div>
+                    <?php endif; ?>
                   <?php endforeach; ?>
                 <?php endif; ?>
               </div>
@@ -401,20 +495,22 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
   </div>
 
   <script>
-    let tacheCount = <?php echo isset($_POST['taches']) ? count($_POST['taches']) : 0; ?>;
+    let tacheCount = <?php echo isset($_POST['taches']) ? count(array_filter($_POST['taches'], function($t) { return !empty(trim($t['nom'])); })) : 0; ?>;
     
     // Fonctions pour le comptage de caractères
     function updateCharacterCount(element, counterId, maxLength) {
       const count = element.value.length;
       const counter = document.getElementById(counterId);
-      counter.textContent = `${count}/${maxLength}`;
-      
-      if (count > maxLength * 0.9) {
-        counter.className = 'character-count error';
-      } else if (count > maxLength * 0.7) {
-        counter.className = 'character-count warning';
-      } else {
-        counter.className = 'character-count';
+      if (counter) {
+        counter.textContent = `${count}/${maxLength}`;
+        
+        if (count > maxLength * 0.9) {
+          counter.className = 'character-count error';
+        } else if (count > maxLength * 0.7) {
+          counter.className = 'character-count warning';
+        } else {
+          counter.className = 'character-count';
+        }
       }
     }
     
@@ -430,17 +526,14 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       } else if (rules.maxLength && value.length > rules.maxLength) {
         isValid = false;
         errorMessage = `Ne doit pas dépasser ${rules.maxLength} caractères`;
-      } else if (rules.pattern && !rules.pattern.test(value)) {
-        isValid = false;
-        errorMessage = rules.patternMessage || 'Format invalide';
       }
       
       if (isValid) {
         field.classList.remove('error-field');
-        errorElement.textContent = '';
+        if (errorElement) errorElement.textContent = '';
       } else {
         field.classList.add('error-field');
-        errorElement.textContent = errorMessage;
+        if (errorElement) errorElement.textContent = errorMessage;
       }
       
       return isValid;
@@ -453,9 +546,9 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       lieu: { required: 'Le lieu est obligatoire', maxLength: 255 },
       date_debut: { required: 'La date de début est obligatoire' },
       disponibilite: { required: 'La disponibilité est obligatoire' },
-      descriptionp: { required: 'La description est obligatoire', maxLength: 1000 },
+      description: { required: 'La description est obligatoire', maxLength: 1000 },
       categorie: { required: 'La catégorie est obligatoire' },
-      created_by: { required: 'Un administrateur est obligatoire' }
+      created_by: { required: 'Un utilisateur est obligatoire' }
     };
     
     document.getElementById('addTache').addEventListener('click', function() {
@@ -485,8 +578,8 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
           <label>Assigné à</label>
           <select name="taches[${tacheCount}][assignee]" class="form-control">
             <option value="">Non assigné</option>
-            <?php foreach($associations as $assoc): ?>
-              <option value="<?php echo $assoc['id']; ?>"><?php echo htmlspecialchars($assoc['nom']); ?></option>
+            <?php foreach($users as $user): ?>
+              <option value="<?php echo $user['id']; ?>"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -497,15 +590,33 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       // Ajouter les écouteurs d'événements pour les nouvelles tâches
       const nomInput = tacheItem.querySelector('.tache-nom');
       const descTextarea = tacheItem.querySelector('.tache-description');
+      const nomCounter = tacheItem.querySelector('.character-count:nth-of-type(1)');
+      const descCounter = tacheItem.querySelector('.character-count:nth-of-type(2)');
       
       nomInput.addEventListener('input', function() {
         const count = this.value.length;
-        this.nextElementSibling.textContent = `${count}/255`;
+        nomCounter.textContent = `${count}/255`;
+        
+        if (count > 255 * 0.9) {
+          nomCounter.className = 'character-count error';
+        } else if (count > 255 * 0.7) {
+          nomCounter.className = 'character-count warning';
+        } else {
+          nomCounter.className = 'character-count';
+        }
       });
       
       descTextarea.addEventListener('input', function() {
         const count = this.value.length;
-        this.nextElementSibling.textContent = `${count}/500`;
+        descCounter.textContent = `${count}/500`;
+        
+        if (count > 500 * 0.9) {
+          descCounter.className = 'character-count error';
+        } else if (count > 500 * 0.7) {
+          descCounter.className = 'character-count warning';
+        } else {
+          descCounter.className = 'character-count';
+        }
       });
       
       tacheCount++;
@@ -553,7 +664,10 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       
       if (dateDebut.value && dateFin.value && dateDebut.value > dateFin.value) {
         isValid = false;
-        document.getElementById('date_fin-error').textContent = 'La date de fin ne peut pas être avant la date de début';
+        const errorElement = document.getElementById('date_fin-error');
+        if (errorElement) {
+          errorElement.textContent = 'La date de fin ne peut pas être avant la date de début';
+        }
         dateFin.classList.add('error-field');
       }
       
@@ -564,7 +678,7 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       // Initialiser les compteurs de caractères
       const titre = document.getElementById('titre');
       const lieu = document.getElementById('lieu');
-      const descriptionp = document.getElementById('descriptionp');
+      const description = document.getElementById('description');
       
       if (titre) {
         updateCharacterCount(titre, 'titre-count', 255);
@@ -582,11 +696,11 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
         });
       }
       
-      if (descriptionp) {
-        updateCharacterCount(descriptionp, 'descriptionp-count', 1000);
-        descriptionp.addEventListener('input', function() {
-          updateCharacterCount(this, 'descriptionp-count', 1000);
-          validateField(this, 'descriptionp-error', validationRules.descriptionp);
+      if (description) {
+        updateCharacterCount(description, 'description-count', 1000);
+        description.addEventListener('input', function() {
+          updateCharacterCount(this, 'description-count', 1000);
+          validateField(this, 'description-error', validationRules.description);
         });
       }
       
@@ -620,10 +734,16 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
         
         dateFin.addEventListener('change', function() {
           if (dateDebut.value && this.value < dateDebut.value) {
-            document.getElementById('date_fin-error').textContent = 'La date de fin ne peut pas être avant la date de début';
+            const errorElement = document.getElementById('date_fin-error');
+            if (errorElement) {
+              errorElement.textContent = 'La date de fin ne peut pas être avant la date de début';
+            }
             this.classList.add('error-field');
           } else {
-            document.getElementById('date_fin-error').textContent = '';
+            const errorElement = document.getElementById('date_fin-error');
+            if (errorElement) {
+              errorElement.textContent = '';
+            }
             this.classList.remove('error-field');
           }
         });
@@ -633,14 +753,36 @@ $date_fin_default = date('Y-m-d', strtotime('+1 month'));
       document.querySelectorAll('.tache-nom').forEach(input => {
         input.addEventListener('input', function() {
           const count = this.value.length;
-          this.nextElementSibling.textContent = `${count}/255`;
+          const counter = this.nextElementSibling;
+          if (counter && counter.classList.contains('character-count')) {
+            counter.textContent = `${count}/255`;
+            
+            if (count > 255 * 0.9) {
+              counter.className = 'character-count error';
+            } else if (count > 255 * 0.7) {
+              counter.className = 'character-count warning';
+            } else {
+              counter.className = 'character-count';
+            }
+          }
         });
       });
       
       document.querySelectorAll('.tache-description').forEach(textarea => {
         textarea.addEventListener('input', function() {
           const count = this.value.length;
-          this.nextElementSibling.textContent = `${count}/500`;
+          const counter = this.nextElementSibling;
+          if (counter && counter.classList.contains('character-count')) {
+            counter.textContent = `${count}/500`;
+            
+            if (count > 500 * 0.9) {
+              counter.className = 'character-count error';
+            } else if (count > 500 * 0.7) {
+              counter.className = 'character-count warning';
+            } else {
+              counter.className = 'character-count';
+            }
+          }
         });
       });
       

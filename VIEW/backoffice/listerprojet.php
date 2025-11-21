@@ -8,7 +8,7 @@ $message = "";
 $message_type = "";
 
 $associations = $projectController->getAssociations();
-$admins = $projectController->getAdmins();
+$users = $projectController->getUsers();
 $categories = $projectController->getCategories();
 
 // Initialiser ou récupérer le compteur de projets supprimés depuis la session
@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     $date_debut = $_POST['date_debut'] ?? '';
     $date_fin = $_POST['date_fin'] ?? '';
     $disponibilite = $_POST['disponibilite'] ?? '';
-    $descriptionp = trim($_POST['descriptionp'] ?? '');
+    $description = trim($_POST['description'] ?? '');
     $categorie = $_POST['categorie'] ?? '';
     $created_by = $_POST['created_by'] ?? '';
     $taches = $_POST['taches'] ?? [];
@@ -57,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
         $errors[] = "La disponibilité est obligatoire";
     }
 
-    if (empty($descriptionp)) {
+    if (empty($description)) {
         $errors[] = "La description est obligatoire";
     }
 
@@ -82,13 +82,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
         foreach ($taches as $index => $tache) {
             $tache_nom = trim($tache['nom'] ?? '');
             $tache_description = trim($tache['description'] ?? '');
-            $tache_assignee = $tache['assignee'] ?? null;
             
             if (!empty($tache_nom)) {
                 $valid_taches[] = [
                     'nom' => $tache_nom,
-                    'description' => $tache_description,
-                    'assignee' => !empty($tache_assignee) ? $tache_assignee : null
+                    'description' => $tache_description
                 ];
             }
         }
@@ -101,7 +99,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
     if (empty($errors)) {
         $result = $projectController->addProject(
             $titre, $association, $lieu, $date_debut, $date_fin, 
-            $disponibilite, $descriptionp, $categorie, $created_by
+            $disponibilite, $description, $categorie, $created_by
         );
         
         if ($result === true) {
@@ -114,7 +112,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ajouter_projet'])) {
                         $tache['description'],
                         'en_attente',
                         $lastProjectId,
-                        $tache['assignee'],
+                        null, // Toujours NULL pour l'assignation - les citoyens s'assigneront plus tard
                         $created_by
                     );
                 }
@@ -238,6 +236,23 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
     .btn-info:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(122, 169, 89, 0.4);
+    }
+
+    .tache-info {
+      background: #E8F4E0;
+      color: #7AA959;
+      padding: 10px 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      border-left: 4px solid #93C572;
+    }
+
+    .tache-info i {
+      color: #93C572;
     }
 
     /* Styles modernes pour le modal de détails */
@@ -800,11 +815,20 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
                       $badgeText = ucfirst($project['disponibilite']);
                       $participantsCount = $projectController->getParticipantsCount($project['id_projet']);
                       
+                      // Récupérer le nom de l'association
+                      $associationName = '';
+                      foreach($associations as $assoc) {
+                          if ($assoc['id'] == $project['association']) {
+                              $associationName = $assoc['first_name'] . ' ' . $assoc['last_name'];
+                              break;
+                          }
+                      }
+                      
                       echo "<tr>";
                       echo "<td>" . htmlspecialchars($project['id_projet']) . "</td>";
                       echo "<td>" . htmlspecialchars($project['titre']) . "</td>";
-                      echo "<td>" . htmlspecialchars(substr($project['descriptionp'] ?? '', 0, 50)) . "...</td>";
-                      echo "<td>" . htmlspecialchars($project['association_nom'] ?? 'N/A') . "</td>";
+                      echo "<td>" . htmlspecialchars(substr($project['description'] ?? '', 0, 50)) . "...</td>";
+                      echo "<td>" . htmlspecialchars($associationName) . "</td>";
                       echo "<td>" . htmlspecialchars($project['lieu'] ?? '') . "</td>";
                       echo "<td>" . htmlspecialchars($project['date_debut'] ?? '') . "</td>";
                       echo "<td>" . htmlspecialchars($project['date_fin'] ?? '') . "</td>";
@@ -815,8 +839,8 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
                       echo "<button class='btn btn-info details-btn' 
                               data-project-id='" . $project['id_projet'] . "'
                               data-project-title='" . htmlspecialchars($project['titre']) . "'
-                              data-project-description='" . htmlspecialchars($project['descriptionp'] ?? '') . "'
-                              data-project-association='" . htmlspecialchars($project['association_nom'] ?? 'N/A') . "'
+                              data-project-description='" . htmlspecialchars($project['description'] ?? '') . "'
+                              data-project-association='" . htmlspecialchars($associationName) . "'
                               data-project-lieu='" . htmlspecialchars($project['lieu'] ?? '') . "'
                               data-project-date-debut='" . htmlspecialchars($project['date_debut'] ?? '') . "'
                               data-project-date-fin='" . htmlspecialchars($project['date_fin'] ?? '') . "'
@@ -865,7 +889,7 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
                 <?php foreach($associations as $association): ?>
                   <option value="<?php echo $association['id']; ?>"
                     <?php echo (isset($_POST['association']) && $_POST['association'] == $association['id']) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($association['nom'] . ' (' . $association['email'] . ')'); ?>
+                    <?php echo htmlspecialchars($association['first_name'] . ' ' . $association['last_name'] . ' (' . $association['email'] . ')'); ?>
                   </option>
                 <?php endforeach; ?>
               </select>
@@ -913,9 +937,9 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
           </div>
           
           <div class="form-group">
-            <label for="descriptionp" class="required-field">Description</label>
-            <textarea id="descriptionp" name="descriptionp" class="form-control" required><?php echo isset($_POST['descriptionp']) ? htmlspecialchars($_POST['descriptionp']) : ''; ?></textarea>
-            <span class="error-message" id="descriptionp-error"></span>
+            <label for="description" class="required-field">Description</label>
+            <textarea id="description" name="description" class="form-control" required><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
+            <span class="error-message" id="description-error"></span>
           </div>
           
           <div class="form-group">
@@ -935,11 +959,11 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
           <div class="form-group">
             <label for="created_by" class="required-field">Créé par</label>
             <select id="created_by" name="created_by" class="form-control" required>
-              <option value="">Sélectionner un administrateur</option>
-              <?php foreach($admins as $admin): ?>
-                <option value="<?php echo $admin['id']; ?>"
-                  <?php echo (isset($_POST['created_by']) && $_POST['created_by'] == $admin['id']) ? 'selected' : ''; ?>>
-                  <?php echo htmlspecialchars($admin['nom'] . ' (' . $admin['email'] . ')'); ?>
+              <option value="">Sélectionner un utilisateur</option>
+              <?php foreach($users as $user): ?>
+                <option value="<?php echo $user['id']; ?>"
+                  <?php echo (isset($_POST['created_by']) && $_POST['created_by'] == $user['id']) ? 'selected' : ''; ?>>
+                  <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name'] . ' (' . $user['email'] . ')'); ?>
                 </option>
               <?php endforeach; ?>
             </select>
@@ -948,6 +972,10 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
 
           <div class="taches-section">
             <h3>Tâches du Projet <span class="required-field">(Au moins une tâche requise)</span></h3>
+            <div class="tache-info">
+              <i class="fas fa-info-circle"></i>
+              <span>Les tâches seront assignées aux citoyens lorsqu'ils participeront au projet</span>
+            </div>
             <button type="button" class="btn-add-tache" id="addTache">
               <i class="fas fa-plus"></i> Ajouter une tâche
             </button>
@@ -973,18 +1001,6 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
                       <div class="form-group">
                         <label>Description</label>
                         <textarea name="taches[<?php echo $index; ?>][description]" class="form-control"><?php echo htmlspecialchars($tache['description'] ?? ''); ?></textarea>
-                      </div>
-                      <div class="form-group">
-                        <label>Assigné à</label>
-                        <select name="taches[<?php echo $index; ?>][assignee]" class="form-control">
-                          <option value="">Non assigné</option>
-                          <?php foreach($associations as $assoc): ?>
-                            <option value="<?php echo $assoc['id']; ?>"
-                              <?php echo (isset($tache['assignee']) && $tache['assignee'] == $assoc['id']) ? 'selected' : ''; ?>>
-                              <?php echo htmlspecialchars($assoc['nom']); ?>
-                            </option>
-                          <?php endforeach; ?>
-                        </select>
                       </div>
                     </div>
                   <?php endif; ?>
@@ -1146,7 +1162,7 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
       // Valider tous les champs principaux
       const requiredFields = [
         'titre', 'association', 'lieu', 'date_debut', 'date_fin', 
-        'disponibilite', 'descriptionp', 'categorie', 'created_by'
+        'disponibilite', 'description', 'categorie', 'created_by'
       ];
       
       requiredFields.forEach(fieldName => {
@@ -1259,15 +1275,6 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
         <div class="form-group">
           <label>Description</label>
           <textarea name="taches[${tacheCount}][description]" class="form-control"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Assigné à</label>
-          <select name="taches[${tacheCount}][assignee]" class="form-control">
-            <option value="">Non assigné</option>
-            <?php foreach($associations as $assoc): ?>
-              <option value="<?php echo $assoc['id']; ?>"><?php echo htmlspecialchars($assoc['nom']); ?></option>
-            <?php endforeach; ?>
-          </select>
         </div>
       `;
       
@@ -1408,7 +1415,7 @@ $projetsSupprimes = $_SESSION['projets_supprimes'];
       // Ajouter la validation en temps réel pour tous les champs
       const requiredFields = [
         'titre', 'association', 'lieu', 'date_debut', 'date_fin', 
-        'disponibilite', 'descriptionp', 'categorie', 'created_by'
+        'disponibilite', 'description', 'categorie', 'created_by'
       ];
       
       requiredFields.forEach(fieldName => {

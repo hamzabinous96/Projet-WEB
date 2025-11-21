@@ -34,9 +34,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_participation'
     $selectedTasks = $_POST['selected_tasks'] ?? [];
     
     if (!empty($selectedTasks)) {
-        // Mettre à jour le statut de chaque tâche sélectionnée avec l'ID utilisateur
+        // Mettre à jour chaque tâche sélectionnée avec l'ID utilisateur
         foreach ($selectedTasks as $taskId) {
-            $projectController->updateTaskStatus($taskId, 'prise', $currentUserId);
+            $projectController->updateTache($taskId, 
+                $projectController->getTacheById($taskId)['nom_tache'],
+                $projectController->getTacheById($taskId)['description'],
+                'prise', // Statut changé à "prise"
+                $currentUserId // Assigner l'utilisateur
+            );
         }
         
         // Recharger les tâches pour afficher les nouveaux statuts
@@ -47,11 +52,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_participation'
     }
 }
 
+// Récupérer le nom de l'association
+$associationName = '';
+$associations = $projectController->getAssociations();
+foreach($associations as $assoc) {
+    if ($assoc['id'] == $project['association']) {
+        $associationName = $assoc['first_name'] . ' ' . $assoc['last_name'];
+        break;
+    }
+}
+
 $projectTitle = htmlspecialchars($project['titre']);
 $projectCategory = htmlspecialchars($project['categorie']);
-$projectAssociation = htmlspecialchars($project['association_nom'] ?? 'Association');
+$projectAssociation = htmlspecialchars($associationName);
 $projectLocation = htmlspecialchars($project['lieu'] ?? 'Non spécifié');
-$projectDescription = htmlspecialchars($project['descriptionp'] ?? 'Aucune description disponible');
+$projectDescription = htmlspecialchars($project['description'] ?? 'Aucune description disponible');
 $projectStartDate = $project['date_debut'] ? date('d/m/Y', strtotime($project['date_debut'])) : 'Flexible';
 $projectEndDate = $project['date_fin'] ? date('d/m/Y', strtotime($project['date_fin'])) : 'En cours';
 $availability = $project['disponibilite'] ?? 'disponible';
@@ -95,7 +110,352 @@ $categoryNames = [
   <link rel="stylesheet" href="../style/details.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
- 
+  <style>
+    /* Styles pour les alertes */
+        .alert {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert i {
+        font-size: 1.2rem;
+    }
+
+    /* Styles pour les badges de statut */
+    .available { background: #e8f5e8; color: #2e7d32; }
+    .full { background: #ffebee; color: #c62828; }
+    .ended { background: #f5f5f5; color: #616161; }
+
+    .category-badge, .availability-badge, .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    /* Styles pour les tâches */
+    .task-taken {
+        opacity: 0.6;
+        background: #f8f9fa;
+    }
+
+    .task-status-indicator {
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 12px;
+        display: inline-block;
+        margin-top: 5px;
+    }
+
+    .task-status-indicator.en_attente { background: #fff3cd; color: #856404; }
+    .task-status-indicator.prise { background: #d4edda; color: #155724; }
+
+    /* Styles pour la modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .task-modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+    }
+
+    .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #666;
+    }
+
+    .task-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .task-item:hover {
+        border-color: #93C572;
+    }
+
+    .task-checkbox {
+        margin-right: 15px;
+        margin-top: 5px;
+    }
+
+    .task-label {
+        flex: 1;
+        cursor: pointer;
+    }
+
+    .task-title {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .task-description {
+        color: #666;
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .selected-tasks-summary {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .selected-task-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        background: white;
+        border-radius: 6px;
+        margin: 5px 0;
+    }
+
+    .task-modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    /* STYLES DES BOUTONS - Style pistache comme demandé */
+    .btn-primary, .btn-secondary, .btn-outline, .btn-login, .btn-register {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        text-decoration: none;
+        text-align: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Style pour btn-primary (bouton principal) */
+    .btn-primary {
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #93C572, #7AA959);
+        border: none;
+        color: white;
+        box-shadow: 0 2px 4px rgba(147, 197, 114, 0.3);
+    }
+
+    .btn-primary::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, 
+            transparent, 
+            rgba(255, 255, 255, 0.2), 
+            transparent);
+        transition: left 0.6s ease;
+    }
+
+    .btn-primary:hover::before {
+        left: 100%;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 60px rgba(147, 197, 114, 0.15);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .btn-primary i {
+        transition: transform 0.3s ease;
+    }
+
+    .btn-primary:hover i {
+        transform: translateX(3px);
+    }
+
+    /* Style pour btn-secondary */
+    .btn-secondary {
+        padding: 12px 30px;
+        background: transparent;
+        border: 2px solid #93C572;
+        color: #93C572;
+    }
+
+    .btn-secondary::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, 
+            transparent, 
+            rgba(147, 197, 114, 0.1), 
+            transparent);
+        transition: left 0.6s ease;
+    }
+
+    .btn-secondary:hover::before {
+        left: 100%;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+        background: #93C572;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 20px 60px rgba(147, 197, 114, 0.15);
+    }
+
+    .btn-secondary.saved {
+        background: #93C572;
+        color: white;
+        border-color: #93C572;
+    }
+
+    .btn-secondary.saved:hover {
+        background: #7AA959;
+        border-color: #7AA959;
+    }
+
+    /* Style pour btn-outline (identique au style du bouton Connexion) */
+    .btn-outline, .btn-login, .btn-register {
+        padding: 10px 20px;
+        background: transparent;
+        border: 2px solid #93C572;
+        color: #93C572;
+    }
+
+    .btn-outline::before, .btn-login::before, .btn-register::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, 
+            transparent, 
+            rgba(147, 197, 114, 0.1), 
+            transparent);
+        transition: left 0.6s ease;
+    }
+
+    .btn-outline:hover::before, .btn-login:hover::before, .btn-register:hover::before {
+        left: 100%;
+    }
+
+    .btn-outline:hover, .btn-login:hover, .btn-register:hover {
+        background: #93C572;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 20px 60px rgba(147, 197, 114, 0.15);
+    }
+
+    .btn-outline:active, .btn-login:active, .btn-register:active {
+        transform: translateY(0);
+    }
+
+    .btn-outline i, .btn-login i, .btn-register i {
+        transition: transform 0.3s ease;
+    }
+
+    .btn-outline:hover i, .btn-login:hover i, .btn-register:hover i {
+        transform: translateX(3px);
+    }
+
+    /* États désactivés */
+    .btn-primary:disabled, .btn-secondary:disabled, .btn-outline:disabled {
+        background: #6c757d;
+        border-color: #6c757d;
+        color: white;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .btn-outline:disabled {
+        background: transparent;
+        color: #6c757d;
+    }
+
+    .btn-primary:disabled:hover, .btn-secondary:disabled:hover, .btn-outline:disabled:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .btn-primary:disabled:hover::before, 
+    .btn-secondary:disabled:hover::before, 
+    .btn-outline:disabled:hover::before {
+        left: -100%;
+    }
+
+    .full-width {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .info-text {
+        font-size: 0.9rem;
+        color: #666;
+        text-align: center;
+        margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
 
@@ -239,7 +599,22 @@ $categoryNames = [
                 <h2>Tâches du Projet</h2>
                 <div class="tasks-preview">
                     <?php foreach($projectTasks as $index => $task): ?>
-                        <?php $taskStatus = $task['status'] ?? 'en_attente'; ?>
+                        <?php 
+                        $taskStatus = $task['status'] ?? 'en_attente';
+                        $isTaken = $taskStatus === 'prise';
+                        $assigneeName = '';
+                        
+                        // Récupérer le nom de l'assigné si la tâche est prise
+                        if ($isTaken && !empty($task['assignee'])) {
+                            $users = $projectController->getUsers();
+                            foreach($users as $user) {
+                                if ($user['id'] == $task['assignee']) {
+                                    $assigneeName = $user['first_name'] . ' ' . $user['last_name'];
+                                    break;
+                                }
+                            }
+                        }
+                        ?>
                         <div class="task-preview-item <?php echo $taskStatus; ?>">
                             <i class="fas fa-tasks"></i>
                             <div class="task-preview-content">
@@ -248,9 +623,9 @@ $categoryNames = [
                                 <span class="task-status <?php echo $taskStatus; ?>">
                                     <?php 
                                     if ($taskStatus === 'prise') {
-                                        echo '✅ Tâche prise en charge';
+                                        echo '✅ Tâche prise par ' . htmlspecialchars($assigneeName);
                                     } elseif ($taskStatus === 'en_attente') {
-                                        echo '⏳ En attente';
+                                        echo '⏳ En attente de participation';
                                     } else {
                                         echo htmlspecialchars($taskStatus);
                                     }
@@ -319,7 +694,7 @@ $categoryNames = [
                         <p>Organisation à but non lucratif</p>
                     </div>
                 </div>
-                <button class="btn-outline full-width" onclick="location.href='association-profile.php?id=<?php echo $project['association']; ?>'">
+                <button class="btn-outline full-width">
                     <i class="fas fa-user"></i>
                     Voir le profil
                 </button>
